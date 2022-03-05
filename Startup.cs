@@ -60,19 +60,8 @@ namespace TinderClone
                 
                 // add DB context
                 services.AddDbContext<TinderContext>(opt => opt.UseNpgsql(connectionString));
-                var serviceProvider = services.BuildServiceProvider();
-                try
-                {
-                    var dbContext = serviceProvider.GetRequiredService<TinderContext>();
-                    dbContext.Database.Migrate();
-                }
-                catch(Exception ex)
-                {
-                    Console.WriteLine("************Start**************");
-                    Console.WriteLine("Exception during migrate database: " + ex.Message);
-                    Console.WriteLine("************End**************");
-                }
             }
+
             services.AddControllers();
             services.AddAuthentication(options => 
             {
@@ -135,8 +124,24 @@ namespace TinderClone
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, TinderContext tinderContext)
         {
+            //var serviceProvider = services.BuildServiceProvider();
+            if (env.IsProduction())
+            {
+                Console.WriteLine("--> Running migration");
+                try
+                {
+                    tinderContext.Database.Migrate();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("************Start**************");
+                    Console.WriteLine("Exception during migrate database: " + ex.Message);
+                    Console.WriteLine("************End**************");
+                }
+            }
+            
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
