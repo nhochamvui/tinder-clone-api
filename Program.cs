@@ -25,7 +25,7 @@ namespace TinderClone
                     webBuilder
                     //.UseKestrel()
                     //.UseContentRoot(Directory.GetCurrentDirectory())
-                    .UseUrls($"http://+:{port}")
+                    .UseUrls("http://*:" + port)
                     //.UseIISIntegration()
                     .UseStartup<Startup>();
                 });

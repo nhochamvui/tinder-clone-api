@@ -34,14 +34,43 @@ namespace TinderClone
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
-        public void ConfigureServices(IServiceCollection services)
+        public void ConfigureServices(IServiceCollection services, IWebHostEnvironment env)
         {
-            //services.AddAuthentication().AddFacebook(facebookOptions =>
-            //{
-            //    facebookOptions.AppId = "591690891823251";
-            //    facebookOptions.AppSecret = "4143b070cc7f6e80258e440c14fa35aa";
-            //});
-            services.AddDbContext<TinderContext>(opt => opt.UseNpgsql(Configuration.GetConnectionString("TinderContext")));
+            if(env.IsDevelopment())
+            {
+                services.AddDbContext<TinderContext>(opt => opt.UseNpgsql(Configuration.GetConnectionString("TinderContext")));
+            }
+            else
+            {
+                string connectionUrl = Environment.GetEnvironmentVariable("DATABASE_URL").Replace("postgres://", string.Empty);
+                Console.WriteLine("************Start**************");
+                Console.WriteLine("DATABASE_URL: " + connectionUrl);
+                Console.WriteLine("************End**************");
+                var userPassSide = connectionUrl.Split("@")[0];
+                var hostSide = connectionUrl.Split("@")[1];
+
+                var user = userPassSide.Split(":")[0];
+                var password = userPassSide.Split(":")[1];
+                var host = hostSide.Split("/")[0];
+                var database = hostSide.Split("/")[1].Split("?")[0];
+
+                var connectionString = $"Host={host};Database={database};Username={user};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+                
+                // add DB context
+                services.AddDbContext<TinderContext>(opt => opt.UseNpgsql(connectionString));
+                var serviceProvider = services.BuildServiceProvider();
+                try
+                {
+                    var dbContext = serviceProvider.GetRequiredService<TinderContext>();
+                    dbContext.Database.Migrate();
+                }
+                catch(Exception ex)
+                {
+                    Console.WriteLine("************Start**************");
+                    Console.WriteLine("Exception during migrate database: " + ex.Message);
+                    Console.WriteLine("************End**************");
+                }
+            }
             services.AddControllers();
             services.AddAuthentication(options => 
             {
@@ -71,19 +100,11 @@ namespace TinderClone
                             context.Token = accessToken;
                             var tokenHandler = new JwtSecurityTokenHandler();
                             var userRaw = tokenHandler.ReadJwtToken(accessToken);
-                            //TinderClone.Models.User user = new User
-                            //{
-                            //    Id = Int32.Parse(userRaw.Id),
-                            //};
-                            //context.HttpContext.User = userRaw.Claims.First(user => user.Value.Equals("id"));
                         }
                         return Task.CompletedTask;
                     }
                 };
             });
-            //services.AddCors(cors => cors.AddPolicy("AllowOrigin", options => options.WithOrigins("http://localhost:8080", "http://localhost:8080/").AllowCredentials()
-            //                                                                        .AllowAnyHeader()
-            //                                                                        .AllowAnyMethod()));
 
             services.AddSignalR();
 
@@ -95,7 +116,6 @@ namespace TinderClone
             {
                 options.AddDefaultPolicy(builder =>
                 {
-                    //builder.AllowAnyOrigin()
                     builder
                     .WithOrigins(new string[] { "http://192.168.1.8:8080", "https://192.168.1.8:8080", "https://localhost:8080", 
                         "http://localhost:8080" })
@@ -104,7 +124,6 @@ namespace TinderClone
                     .WithExposedHeaders("location");
                 });
             });
-            //services.AddCors();
 
             services.AddSwaggerGen(c =>
             {
