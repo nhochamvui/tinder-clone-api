@@ -130,6 +130,8 @@ namespace TinderClone
             if (env.IsProduction())
             {
                 Console.WriteLine("--> Running migration");
+                Console.WriteLine("--> Connection String: " + tinderContext.Database.GetConnectionString());
+                Console.WriteLine("--> Is database exists: " + tinderContext.Database.CanConnect());
                 try
                 {
                     tinderContext.Database.Migrate();
