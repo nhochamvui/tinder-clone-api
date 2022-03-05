@@ -24,10 +24,9 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-
-      # Runs a set of commands using the runners shell
-      - name: get container and push
-        run: |
-          docker login --username=nhochamvui.love@gmail.com --password=${{secrets.HEROKU_API_KEY}} registry.Heroku.com
-          Heroku container:push web -a ${{secrets.HEROKU_APP_NAME}}
-          Heroku container:release web -a ${{secrets.HEROKU_APP_NAME}}
+      - uses: akhileshns/heroku-deploy@v3.12.12
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: ${{secrets.HEROKU_APP_NAME}}
+          heroku_email: ${{secrets.HEROKU_EMAIL}}
+          usedocker: true
