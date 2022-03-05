@@ -37,8 +37,13 @@ namespace TinderClone.Controllers
         {
             var header = HttpContext.Request.Headers["x-forwarded-for"];
             Console.WriteLine("/api/profile/location -> request header: " + header);
+            if (!header.Equals(string.Empty))
+            {
+                return Ok(await _userService.GetLocation(header));
+            }
+
             var ip = HttpContext.Connection.RemoteIpAddress.ToString();
-            Console.WriteLine("/api/profile/location -> request IP: " + ip);
+            Console.WriteLine("/api/profile/location -> RemoteIpAddress: " + ip);
             var result = await _userService.GetLocation(ip);
             return Ok(result);
         }
