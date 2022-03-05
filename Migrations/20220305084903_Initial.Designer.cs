@@ -10,8 +10,8 @@ using TinderClone.Models;
 namespace TinderClone.Migrations
 {
     [DbContext(typeof(TinderContext))]
-    [Migration("20220219014739_AddProfilesTable")]
-    partial class AddProfilesTable
+    [Migration("20220305084903_Initial")]
+    partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -68,16 +68,30 @@ namespace TinderClone.Migrations
                         new
                         {
                             Id = 1L,
-                            AgePreferenceCheck = false,
+                            AgePreferenceCheck = true,
                             DistancePreference = 1,
-                            DistancePreferenceCheck = false,
-                            LikeCount = 0,
+                            DistancePreferenceCheck = true,
+                            LikeCount = 100,
                             Location = "Hồ Chí Minh",
                             LookingForGender = 1,
-                            MaxAge = 25,
+                            MaxAge = 100,
                             MinAge = 18,
-                            SuperlikeCount = 0,
+                            SuperlikeCount = 4,
                             UserID = 1L
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            AgePreferenceCheck = true,
+                            DistancePreference = 1,
+                            DistancePreferenceCheck = true,
+                            LikeCount = 100,
+                            Location = "Hồ Chí Minh",
+                            LookingForGender = 0,
+                            MaxAge = 100,
+                            MinAge = 18,
+                            SuperlikeCount = 4,
+                            UserID = 2L
                         });
                 });
 
@@ -175,9 +189,36 @@ namespace TinderClone.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserID");
+                    b.HasIndex("UserID")
+                        .IsUnique();
 
                     b.ToTable("Profiles");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            About = "",
+                            DateOfBirth = new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "a@gmail.com",
+                            Gender = 0,
+                            Location = "Hồ Chí Minh",
+                            Name = "Tho",
+                            Phone = "0907904598",
+                            UserID = 1L
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            About = "",
+                            DateOfBirth = new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "a1@gmail.com",
+                            Gender = 1,
+                            Location = "Hồ Chí Minh",
+                            Name = "Jan",
+                            Phone = "0907904598",
+                            UserID = 2L
+                        });
                 });
 
             modelBuilder.Entity("TinderClone.Models.ProfileImages", b =>
@@ -310,8 +351,8 @@ namespace TinderClone.Migrations
             modelBuilder.Entity("TinderClone.Models.Profile", b =>
                 {
                     b.HasOne("TinderClone.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserID")
+                        .WithOne("Profile")
+                        .HasForeignKey("TinderClone.Models.Profile", "UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -331,6 +372,8 @@ namespace TinderClone.Migrations
 
             modelBuilder.Entity("TinderClone.Models.User", b =>
                 {
+                    b.Navigation("Profile");
+
                     b.Navigation("ProfileImages");
                 });
 #pragma warning restore 612, 618

@@ -130,7 +130,6 @@ namespace TinderClone
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, TinderContext tinderContext)
         {
-            //var serviceProvider = services.BuildServiceProvider();
             if (env.IsProduction())
             {
                 Console.WriteLine("--> Running migration");

@@ -66,16 +66,30 @@ namespace TinderClone.Migrations
                         new
                         {
                             Id = 1L,
-                            AgePreferenceCheck = false,
+                            AgePreferenceCheck = true,
                             DistancePreference = 1,
-                            DistancePreferenceCheck = false,
-                            LikeCount = 0,
+                            DistancePreferenceCheck = true,
+                            LikeCount = 100,
                             Location = "Hồ Chí Minh",
                             LookingForGender = 1,
-                            MaxAge = 25,
+                            MaxAge = 100,
                             MinAge = 18,
-                            SuperlikeCount = 0,
+                            SuperlikeCount = 4,
                             UserID = 1L
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            AgePreferenceCheck = true,
+                            DistancePreference = 1,
+                            DistancePreferenceCheck = true,
+                            LikeCount = 100,
+                            Location = "Hồ Chí Minh",
+                            LookingForGender = 0,
+                            MaxAge = 100,
+                            MinAge = 18,
+                            SuperlikeCount = 4,
+                            UserID = 2L
                         });
                 });
 
@@ -177,6 +191,32 @@ namespace TinderClone.Migrations
                         .IsUnique();
 
                     b.ToTable("Profiles");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            About = "",
+                            DateOfBirth = new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "a@gmail.com",
+                            Gender = 0,
+                            Location = "Hồ Chí Minh",
+                            Name = "Tho",
+                            Phone = "0907904598",
+                            UserID = 1L
+                        },
+                        new
+                        {
+                            Id = 2L,
+                            About = "",
+                            DateOfBirth = new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "a1@gmail.com",
+                            Gender = 1,
+                            Location = "Hồ Chí Minh",
+                            Name = "Jan",
+                            Phone = "0907904598",
+                            UserID = 2L
+                        });
                 });
 
             modelBuilder.Entity("TinderClone.Models.ProfileImages", b =>
