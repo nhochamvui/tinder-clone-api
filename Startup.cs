@@ -59,7 +59,7 @@ namespace TinderClone
 
                 var pgUser = pgUserPass.Split(":")[0];
                 var pgPass = pgUserPass.Split(":")[1];
-                var connectionString = $"Server={pgHost};Port={pgPort};User Id={pgUser};Password={pgPass};Database={pgDb}";
+                var connectionString = $"Server={pgHost};Port={pgPort};User Id={pgUser};Password={pgPass};Database={pgDb};SSL Mode=Require;Trust Server Certificate=true";
                 //var connectionString = $"Host={host};Database={database};Username={user};Password={password};SSL Mode=Require;Trust Server Certificate=true";
                 
                 // add DB context
@@ -135,7 +135,7 @@ namespace TinderClone
             {
                 Console.WriteLine("--> Running migration");
                 Console.WriteLine("--> Connection String: " + tinderContext.Database.GetConnectionString());
-                Console.WriteLine("--> Is database exists: " + tinderContext.Database.CanConnect());
+                Console.WriteLine("--> Is database can connect: " + tinderContext.Database.CanConnect());
                 try
                 {
                     tinderContext.Database.Migrate();
