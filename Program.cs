@@ -22,12 +22,20 @@ namespace TinderClone
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     var port = Environment.GetEnvironmentVariable("PORT");
-                    webBuilder
-                    //.UseKestrel()
-                    //.UseContentRoot(Directory.GetCurrentDirectory())
-                    .UseUrls("http://*:" + port)
-                    //.UseIISIntegration()
-                    .UseStartup<Startup>();
+                    var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+                    if (env.Equals("Development"))
+                    {
+                        webBuilder.UseStartup<Startup>();
+                    }
+                    else
+                    {
+                        webBuilder
+                        //.UseKestrel()
+                        //.UseContentRoot(Directory.GetCurrentDirectory())
+                        .UseUrls("http://*:" + port)
+                        //.UseIISIntegration()
+                        .UseStartup<Startup>();
+                    }
                 });
     }
 }
