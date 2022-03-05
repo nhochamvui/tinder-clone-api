@@ -13,6 +13,7 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using TinderClone.Models;
+using TinderClone.Services;
 
 namespace TinderClone.Controllers
 {
@@ -22,29 +23,24 @@ namespace TinderClone.Controllers
     {
         private readonly TinderContext _context;
         private IConfiguration _config;
+        private readonly IUserService _userService;
 
-        public ProfileController(TinderContext context, IConfiguration config)
+        public ProfileController(TinderContext context, IConfiguration config, IUserService userService)
         {
             _config = config;
             _context = context;
+            _userService = userService;
         }
 
         [HttpGet("location")]
         public async Task<IActionResult> Location()
         {
-            //string ip = string.Empty;
-            //if (!string.IsNullOrEmpty(httpContext.Request.Headers["X-Forwarded-For"]))
-            //{
-            //    ip = httpContext.Request.Headers["X-Forwarded-For"];
-            //}
-            //else
-            //{
-            //    ip = httpContext.Request.HttpContext.Features.Get<IHttpConnectionFeature>().RemoteIpAddress.ToString();
-            //}
-            //var remoteIpAddress = request.HttpContext.Connection.RemoteIpAddress;
-            var t = HttpContext.Connection.RemoteIpAddress.ToString();
-            Console.WriteLine(t);
-            return Ok(t);
+            var header = HttpContext.Request.Headers["x-forwarded-for"];
+            Console.WriteLine("/api/profile/location -> request header: " + header);
+            var ip = HttpContext.Connection.RemoteIpAddress.ToString();
+            Console.WriteLine("/api/profile/location -> request IP: " + ip);
+            var result = await _userService.GetLocation(ip);
+            return Ok(result);
         }
 
         [HttpPost("signup")]

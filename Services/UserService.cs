@@ -2,10 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,16 +26,29 @@ namespace TinderClone.Services
         Task<Result> CreateFromFB(FacebookUserData facebookUserData);
         Profile CreateFromFB(SignupDTO signupDTO, long userID);
         Task<string> GetToken(long userID);
+        Task<GeoPluginResponse> GetLocation(string ip);
     }
     public class UserService : IUserService
     {
         private TinderContext _dbContext;
         private IConfiguration _config;
+        private HttpClient _httpClient;
+
         public UserService(TinderContext dbContext, IConfiguration config)
         {
             _dbContext = dbContext;
             _config = config;
+            _httpClient = new HttpClient();
         }
+
+        public async Task<GeoPluginResponse> GetLocation(string ip)
+        {
+            var result = await _httpClient.GetStringAsync("http://www.geoplugin.net/json.gp?ip="+ip);
+            var location = JsonConvert.DeserializeObject<GeoPluginResponse>(result.ToString(),
+                new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+            return location;
+        }
+
         public User Authenticate(string username, string password)
         {
             if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
