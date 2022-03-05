@@ -48,15 +48,19 @@ namespace TinderClone
                 Console.WriteLine("************Start**************");
                 Console.WriteLine("DATABASE_URL: " + connectionUrl);
                 Console.WriteLine("************End**************");
-                var userPassSide = connectionUrl.Split("@")[0];
-                var hostSide = connectionUrl.Split("@")[1];
 
-                var user = userPassSide.Split(":")[0];
-                var password = userPassSide.Split(":")[1];
-                var host = hostSide.Split("/")[0];
-                var database = hostSide.Split("/")[1].Split("?")[0];
+                var pgUserPass = connectionUrl.Split("@")[0];
+                var pgHostPortDb = connectionUrl.Split("@")[1];
 
-                var connectionString = $"Host={host};Database={database};Username={user};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+                var pgHostPort = pgHostPortDb.Split("/")[0];
+                var pgHost = pgHostPort.Split(":")[0];
+                var pgPort = pgHostPort.Split(":")[1];
+                var pgDb = pgHostPortDb.Split("/")[1];
+
+                var pgUser = pgUserPass.Split(":")[0];
+                var pgPass = pgUserPass.Split(":")[1];
+                var connectionString = $"Server={pgHost};Port={pgPort};User Id={pgUser};Password={pgPass};Database={pgDb}";
+                //var connectionString = $"Host={host};Database={database};Username={user};Password={password};SSL Mode=Require;Trust Server Certificate=true";
                 
                 // add DB context
                 services.AddDbContext<TinderContext>(opt => opt.UseNpgsql(connectionString));
