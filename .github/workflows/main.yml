@@ -28,6 +28,6 @@ jobs:
       # Runs a set of commands using the runners shell
       - name: get container and push
         run: |
-          docker login --username=${{secrets.HEROKU_EMAIL}} --password=${{secrets.HEROKU_API_KEY}} registry.Heroku.com
+          docker login --username=nhochamvui.love@gmail.com --password=${{secrets.HEROKU_API_KEY}} registry.Heroku.com
           Heroku container:push web -a ${{secrets.HEROKU_APP_NAME}}
           Heroku container:release web -a ${{secrets.HEROKU_APP_NAME}}
