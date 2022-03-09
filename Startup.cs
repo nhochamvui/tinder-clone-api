@@ -36,8 +36,9 @@ namespace TinderClone
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")??"Development";
             Console.WriteLine("-->Running on: " + env.ToString());
+
             if (env.Equals("Development"))
             {
                 services.AddDbContext<TinderContext>(opt => opt.UseNpgsql(Configuration.GetConnectionString("TinderContext")));
@@ -106,6 +107,7 @@ namespace TinderClone
             services.AddSingleton<IUserIdProvider, UserIDProvider>();
             services.AddTransient<IUserService, UserService>();
             services.AddTransient<IFacebookService, FacebookService>();
+            services.AddTransient<ILocationService, LocationService>();
 
             services.AddCors(options =>
             {
@@ -130,7 +132,7 @@ namespace TinderClone
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, TinderContext tinderContext)
         {
-            if (env.IsProduction())
+            if (!env.IsProduction())
             {
                 Console.WriteLine("--> Running migration");
                 Console.WriteLine("--> Connection String: " + tinderContext.Database.GetConnectionString());

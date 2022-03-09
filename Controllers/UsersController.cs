@@ -30,12 +30,14 @@ namespace TinderClone.Controllers
         private IConfiguration _config;
         private readonly IUserService _userService;
         private readonly IFacebookService _facebookService;
-        public UsersController(TinderContext context, IUserService userService, IFacebookService facebookService, IConfiguration config)
+        private readonly ILocationService _locationService;
+        public UsersController(TinderContext context, ILocationService locationService, IUserService userService, IFacebookService facebookService, IConfiguration config)
         {
             _config = config;
             _context = context;
             _userService = userService;
             _facebookService = facebookService;
+            _locationService = locationService;
         }
 
         // GET: api/Users
@@ -60,11 +62,35 @@ namespace TinderClone.Controllers
         public async Task<ActionResult> RemoveProfileImage([FromBody] int imageIndex)
         {
             long myId = Convert.ToInt64(HttpContext.User.FindFirst("id")?.Value);
-            List<ProfileImages> entities = await _context.ProfileImages.Where(x => x.UserID == myId).ToListAsync();
-            if (entities.Count > 0)
+            var profileID = await _context.Profiles.Where(x => x.UserID == myId).Select(x => x.Id).FirstOrDefaultAsync();
+            
+            if(profileID == default)
             {
-                entities[imageIndex].ImageURL = string.Empty;
-                _context.ProfileImages.Update(entities[imageIndex]);
+                return Unauthorized("User does not exist");
+            }
+
+            var profileImages = await _context.ProfileImages
+                                    .Where(p => p.ProfileID == profileID).Select(p => p)
+                                    .OrderByDescending(p => p.Id)
+                                    .Reverse().ToListAsync();
+            if (profileImages.Any())
+            {
+                if(imageIndex > profileImages.Count - 1)
+                {
+                    profileImages.Add(new ProfileImages
+                    {
+                        ImageURL = string.Empty,
+                        DeleteURL = string.Empty,
+                        ProfileID = profileID,
+                    });
+                }
+                else
+                {
+                    profileImages[imageIndex].ImageURL = string.Empty;
+                    profileImages[imageIndex].DeleteURL = string.Empty;
+                    _context.ProfileImages.Update(profileImages[imageIndex]);
+                }
+                
                 try
                 {
                     await _context.SaveChangesAsync();
@@ -261,10 +287,18 @@ namespace TinderClone.Controllers
             if (!string.IsNullOrWhiteSpace(userParam.UserName) && !string.IsNullOrWhiteSpace(userParam.Password))
             {
                 var user = _context.Users.SingleOrDefault(x => x.UserName.Equals(userParam.UserName) && x.Password.Equals(userParam.Password));
+                
 
                 if (user != null)
                 {
-                    int profileImagesCount = _context.ProfileImages.Where(s => s.UserID == user.Id).Count();
+                    var profileID = await _context.Profiles.Where(x => x.UserID == user.Id).Select(x => x.Id).FirstOrDefaultAsync();
+
+                    if (profileID == default)
+                    {
+                        return Unauthorized("User does not exist");
+                    }
+
+                    int profileImagesCount = _context.ProfileImages.Where(s => s.ProfileID == profileID).Count();
 
                     var userClaims = new[]
                     {
@@ -312,7 +346,7 @@ namespace TinderClone.Controllers
                         {
                             _context.ProfileImages.Add(new ProfileImages
                             {
-                                UserID = user.Id,
+                                ProfileID = profileID,
                                 ImageURL = "",
                             });
                             await _context.SaveChangesAsync();
@@ -330,6 +364,35 @@ namespace TinderClone.Controllers
             return BadRequest("Username or Password is null");
         }
 
+        [HttpDelete]
+        [Authorize]
+        public async Task<ActionResult> DeleteUser()
+        {
+            long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
+            var profileID = await _context.Profiles.Where(x => x.UserID == myId).Select(x => x.Id).FirstOrDefaultAsync();
+
+            if (profileID == default)
+            {
+                return Unauthorized("User does not exist");
+            }
+
+            var discoverySettings = _context.DiscoverySettings.Where(setting => setting.UserID == myId).FirstOrDefault();
+            var user = _context.Users.Where(u => u.Id == myId).FirstOrDefault();
+            var profile = _context.Profiles.Where(u => u.UserID == myId).FirstOrDefault();
+            var profileImages = await _context.ProfileImages.Where(u => u.ProfileID == profileID).ToListAsync();
+            if (discoverySettings == default || user == default || profile == default || profileImages.Count <= 0)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            _context.DiscoverySettings.Remove(discoverySettings);
+            _context.Users.Remove(user);
+            _context.Profiles.Remove(profile);
+            _context.ProfileImages.RemoveRange(profileImages);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
+
         [HttpPost("fbauth")]
         public async Task<ActionResult> Login(FacebookAccessToken facebookAccessToken)
         {
@@ -339,7 +402,7 @@ namespace TinderClone.Controllers
                 return Unauthorized("Invalid facebook token.");
             }
 
-                              var userInfoResponse = await _facebookService.GetMe(facebookAccessToken.AccessToken);
+            var userInfoResponse = await _facebookService.GetMe(facebookAccessToken.AccessToken);
             var userInfo = JsonConvert.DeserializeObject<FacebookUserData>(userInfoResponse.ToString(), 
                 new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore});
 
@@ -355,7 +418,7 @@ namespace TinderClone.Controllers
         }
 
         [HttpPost("fbsignup")]
-        public async Task<ActionResult> FacebookSignup(FacebookUserData facebookUserData)
+        public async Task<ActionResult> FacebookSignup([FromForm] FacebookUserData facebookUserData)
         {
             // 1.generate an app access token
             if (!await _facebookService.IsAccessTokenValid(facebookUserData.AccessToken))
@@ -385,7 +448,9 @@ namespace TinderClone.Controllers
 
             // signup
             facebookUserData.Id = userInfo.Id;
-            Result result = await _userService.CreateFromFB(facebookUserData);
+            var ip = HttpContext.Request.Headers["x-forwarded-for"];
+            GeoPluginResponse location = await _locationService.GetLocation(ip);
+            Result result = await _userService.CreateFromFB(facebookUserData, location);
             if (!result.IsSuccess) 
             {
                 return StatusCode(500, new { Content = new StringContent(result.Error) });
@@ -404,7 +469,7 @@ namespace TinderClone.Controllers
         public async Task<ActionResult> DiscoverySettings()
         {
             long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
-            var result = _context.DiscoverySettings.Where(setting => setting.UserID == myId).FirstOrDefault();
+            var result = await _context.DiscoverySettings.Where(setting => setting.UserID == myId).FirstOrDefaultAsync();
             if (result == default)
             {
                 return Ok();
@@ -444,7 +509,7 @@ namespace TinderClone.Controllers
             return Ok();
         }
 
-        [HttpPost("uploadphoto")]
+        [HttpPost("/local/uploadphoto")]
         [Authorize]
         public async Task<IActionResult> UploadPhoto(IFormFile photo, [FromForm] int index)
         {
@@ -523,7 +588,7 @@ namespace TinderClone.Controllers
             {
                 await photo.CopyToAsync(stream);
                 var profileImages = await _context.ProfileImages
-                                        .Where(p => p.UserID == myId).Select(p => p)
+                                        .Where(p => p.ProfileID == myId).Select(p => p)
                                         .OrderByDescending(p => p.Id)
                                         .Reverse().ToListAsync();
                 if (index < profileImages.Count)
@@ -538,7 +603,7 @@ namespace TinderClone.Controllers
                     profileImages.Add(new ProfileImages
                     {
                         ImageURL = Path.GetFileName(stream.Name),
-                        UserID = myId,
+                        ProfileID = myId,
                     });
                 }
                 try
@@ -547,11 +612,62 @@ namespace TinderClone.Controllers
                 }
                 catch (Exception ex)
                 {
-                    return StatusCode(500, "Internal Server Error. Something went Wrong!");
+                    return StatusCode(500, new { message = "Internal Server Error. Something went Wrong! " + ex.Message });
                 }
 
                 return Created(Path.GetFileName(stream.Name).ToString(), new { index = index });
             }
+        }
+
+        [HttpPost("uploadphoto")]
+        [Authorize]
+        public async Task<IActionResult> UploadPhotoIMGBB(IFormFile photo, [FromForm] int index)
+        {
+            long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
+            var profileID = await _context.Profiles.Where(x => x.UserID == myId).Select(x => x.Id).FirstOrDefaultAsync();
+
+            if (profileID == default)
+            {
+                return Unauthorized("User does not exist");
+            }
+
+            ImgBBResponse imgBBResponse = await _userService.UploadIMGBB(photo);
+            if (imgBBResponse == null)
+            {
+                return StatusCode(500, new { message = "Upload Failed: " });
+            }
+
+            var profileImages = await _context.ProfileImages
+                                    .Where(p => p.ProfileID == profileID).Select(p => p)
+                                    .OrderByDescending(p => p.Id)
+                                    .Reverse().ToListAsync();
+            if (index < profileImages.Count)
+            {
+                var temp = profileImages[index];
+                temp.ImageURL = imgBBResponse.Data.DisplayUrl;
+                temp.DeleteURL = imgBBResponse.Data.DeleteUrl;
+                _context.ProfileImages.Update(temp);
+            }
+            // max slot is 6
+            else if (index <= 5)
+            {
+                _context.ProfileImages.Add(new ProfileImages
+                {
+                    ImageURL = imgBBResponse.Data.DisplayUrl,
+                    DeleteURL = imgBBResponse.Data.DeleteUrl,
+                    ProfileID = profileID,
+                });
+            }
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Internal Server Error. Something went Wrong!");
+            }
+
+            return Created(imgBBResponse.Data.DisplayUrl, new { index = index });
         }
 
         [HttpPatch("setgender")]
@@ -583,7 +699,6 @@ namespace TinderClone.Controllers
         }
 
         [HttpPost("check/email")]
-        [Authorize]
         public async Task<IActionResult> CheckEmail(Models.User param)
         {
             if (!param.Email.Equals(string.Empty))

@@ -54,22 +54,7 @@ namespace TinderClone.Models
                 Gender = (int)Sex.Female,
                 Location = "Cần Thơ"
             });
-            modelBuilder.Entity<ProfileImages>().HasData(new ProfileImages
-            {
-                Id = 1,
-                ImageURL = "img/unclebob.jpg",
-                UserID = 1,
-            }, new ProfileImages
-            {
-                Id = 2,
-                ImageURL = "img/unclebob1.jpg",
-                UserID = 1,
-            }, new ProfileImages
-            {
-                Id = 3,
-                ImageURL = "img/auntbob.jpg",
-                UserID = 2,
-            });
+
             modelBuilder.Entity<DiscoverySettings>().HasData(new DiscoverySettings
             {
                 Id = 1,
@@ -109,6 +94,8 @@ namespace TinderClone.Models
                 Name = "Tho",
                 Phone = "0907904598",
                 UserID = 1,
+                Latitude = "10.0371100",
+                Longitude = "105.7882500",
             }) ;
             modelBuilder.Entity<Profile>().HasData(new Profile
             {
@@ -121,6 +108,22 @@ namespace TinderClone.Models
                 Name = "Jan",
                 Phone = "0907904598",
                 UserID = 2,
+                //Latitude = "10.8142",
+                //Longitude = "106.6438",
+                Latitude = "10.045783",
+                Longitude = "105.761412",
+            });
+
+            modelBuilder.Entity<ProfileImages>().HasData(new ProfileImages
+            {
+                Id = 1,
+                ImageURL = "https://i.ibb.co/VYgMyVd/217772307-360659078758844-3269291223653109900-n.jpg",
+                ProfileID = 1,
+            }, new ProfileImages
+            {
+                Id = 2,
+                ImageURL = "https://i.ibb.co/6mYstg7/273538889-1378020902629820-5496867161341207743-n.jpg",
+                ProfileID = 2,
             });
         }
     }

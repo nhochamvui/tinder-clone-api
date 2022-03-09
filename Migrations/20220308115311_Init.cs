@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace TinderClone.Migrations
 {
-    public partial class Initial : Migration
+    public partial class Init : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -104,26 +104,6 @@ namespace TinderClone.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProfileImages",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    ImageURL = table.Column<string>(type: "text", nullable: false),
-                    UserID = table.Column<long>(type: "bigint", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ProfileImages", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ProfileImages_Users_UserID",
-                        column: x => x.UserID,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Profiles",
                 columns: table => new
                 {
@@ -135,6 +115,8 @@ namespace TinderClone.Migrations
                     Email = table.Column<string>(type: "text", nullable: true),
                     About = table.Column<string>(type: "text", nullable: true),
                     Location = table.Column<string>(type: "text", nullable: true),
+                    Longitude = table.Column<string>(type: "text", nullable: true),
+                    Latitude = table.Column<string>(type: "text", nullable: true),
                     Phone = table.Column<string>(type: "text", nullable: true),
                     UserID = table.Column<long>(type: "bigint", nullable: false)
                 },
@@ -145,6 +127,27 @@ namespace TinderClone.Migrations
                         name: "FK_Profiles_Users_UserID",
                         column: x => x.UserID,
                         principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProfileImages",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ImageURL = table.Column<string>(type: "text", nullable: false),
+                    DeleteURL = table.Column<string>(type: "text", nullable: true),
+                    ProfileID = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProfileImages", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ProfileImages_Profiles_ProfileID",
+                        column: x => x.ProfileID,
+                        principalTable: "Profiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -168,22 +171,21 @@ namespace TinderClone.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "ProfileImages",
-                columns: new[] { "Id", "ImageURL", "UserID" },
+                table: "Profiles",
+                columns: new[] { "Id", "About", "DateOfBirth", "Email", "Gender", "Latitude", "Location", "Longitude", "Name", "Phone", "UserID" },
                 values: new object[,]
                 {
-                    { 1L, "img/unclebob.jpg", 1L },
-                    { 2L, "img/unclebob1.jpg", 1L },
-                    { 3L, "img/auntbob.jpg", 2L }
+                    { 1L, "", new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "a@gmail.com", 0, "10.0371100", "Hồ Chí Minh", "105.7882500", "Tho", "0907904598", 1L },
+                    { 2L, "", new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "a1@gmail.com", 1, "10.045783", "Hồ Chí Minh", "105.761412", "Jan", "0907904598", 2L }
                 });
 
             migrationBuilder.InsertData(
-                table: "Profiles",
-                columns: new[] { "Id", "About", "DateOfBirth", "Email", "Gender", "Location", "Name", "Phone", "UserID" },
+                table: "ProfileImages",
+                columns: new[] { "Id", "DeleteURL", "ImageURL", "ProfileID" },
                 values: new object[,]
                 {
-                    { 1L, "", new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "a@gmail.com", 0, "Hồ Chí Minh", "Tho", "0907904598", 1L },
-                    { 2L, "", new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "a1@gmail.com", 1, "Hồ Chí Minh", "Jan", "0907904598", 2L }
+                    { 1L, null, "https://i.ibb.co/VYgMyVd/217772307-360659078758844-3269291223653109900-n.jpg", 1L },
+                    { 2L, null, "https://i.ibb.co/6mYstg7/273538889-1378020902629820-5496867161341207743-n.jpg", 2L }
                 });
 
             migrationBuilder.CreateIndex(
@@ -202,9 +204,9 @@ namespace TinderClone.Migrations
                 column: "toID");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProfileImages_UserID",
+                name: "IX_ProfileImages_ProfileID",
                 table: "ProfileImages",
-                column: "UserID");
+                column: "ProfileID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Profiles_UserID",

@@ -45,6 +45,7 @@ namespace TinderClone.Controllers
             var ip = HttpContext.Connection.RemoteIpAddress.ToString();
             Console.WriteLine("/api/profile/location -> RemoteIpAddress: " + ip);
             var result = await _userService.GetLocation(ip);
+            Console.WriteLine("/api/profile/location -> Location: " + result.ToString());
             return Ok(result);
         }
 

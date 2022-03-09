@@ -14,6 +14,8 @@ namespace TinderClone.Models
         public long Id { get; set; }
         
         public long UserID { get; set; }
+
+        [System.Text.Json.Serialization.JsonIgnore]
         public User User { set; get; }
         
         public string Location { get; set; }

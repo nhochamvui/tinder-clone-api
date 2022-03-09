@@ -41,7 +41,9 @@ namespace TinderClone.Services
             // 2. validate the user access token
             var accessTokenValidationRes = await _httpClient.GetStringAsync($"https://graph.facebook.com/debug_token?" +
                 $"input_token={facebookAccessToken}&access_token={appAccessToken.AccessToken}");
-            var accessTokenValidation = JsonConvert.DeserializeObject<FacebookUserAccessTokenValidation>(accessTokenValidationRes);
+            var accessTokenValidation = JsonConvert.DeserializeObject<FacebookUserAccessTokenValidation>(accessTokenValidationRes,
+
+                new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
             // 3. we've got a valid token so we can request user data from fb
             if (!accessTokenValidation.Data.IsValid)

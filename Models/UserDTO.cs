@@ -36,11 +36,11 @@ namespace TinderClone.Models
             this.ProfileImages = GetProfileImages(context, user.Id);
         }
 
-        public static List<string> GetProfileImages(TinderContext context, long userID)
+        public static List<string> GetProfileImages(TinderContext context, long profileID)
         {
-            List<string> results = new List<string>();
+            List<string> results = new();
             var test = context.ProfileImages
-                       .Where(x => x.UserID == userID)
+                       .Where(x => x.ProfileID == profileID)
                        .Select(x => new { x.ImageURL, x.Id })
                        .OrderByDescending(x => x.Id).Reverse().ToArray();
 
@@ -51,28 +51,28 @@ namespace TinderClone.Models
             return results;
         }
 
-        public static string GetStringProfileImages(TinderContext context, long userID)
-        {
-            string results = null;
-            var test = context.ProfileImages.Where(x => x.UserID == userID).Select(x => x.ImageURL).ToArray();
+        //public static string GetStringProfileImages(TinderContext context, long userID)
+        //{
+        //    string results = null;
+        //    var test = context.ProfileImages.Where(x => x.UserID == userID).Select(x => x.ImageURL).ToArray();
 
-            foreach (var item in test)
-            {
-                results = ";" + item;
-            }
-            return results;
-        }
+        //    foreach (var item in test)
+        //    {
+        //        results = ";" + item;
+        //    }
+        //    return results;
+        //}
 
-        public static List<string> GetProfileImages(IQueryable<ProfileImages> profileImages, long userID)
-        {
-            List<string> results = new List<string>();
-            var test = profileImages.Where(x => x.UserID == userID).Select(x => x.ImageURL).ToArray();
+        //public static List<string> GetProfileImages(IQueryable<ProfileImages> profileImages, long userID)
+        //{
+        //    List<string> results = new List<string>();
+        //    var test = profileImages.Where(x => x.UserID == userID).Select(x => x.ImageURL).ToArray();
 
-            foreach (var item in test)
-            {
-                results.Add(item);
-            }
-            return results;
-        }
+        //    foreach (var item in test)
+        //    {
+        //        results.Add(item);
+        //    }
+        //    return results;
+        //}
     }
 }

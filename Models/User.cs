@@ -36,8 +36,6 @@ namespace TinderClone.Models
         //navigation
         public Profile Profile { get; set; }
 
-        public ICollection<ProfileImages> ProfileImages { get; set; }
-
         public static string GetGender(int sex)
         {
             switch (sex)
@@ -72,10 +70,6 @@ namespace TinderClone.Models
 
         public static int GetAge(DateTime dateOfBirth)
         {
-            if (dateOfBirth == null)
-            {
-                return 0;
-            }
             return (DateTime.UtcNow - dateOfBirth).Days / 365;
         }
     }

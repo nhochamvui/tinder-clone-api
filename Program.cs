@@ -23,7 +23,7 @@ namespace TinderClone
                 {
                     var port = Environment.GetEnvironmentVariable("PORT");
                     var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-                    if (env.Equals("Development"))
+                    if (env == null || env.Equals("Development"))
                     {
                         webBuilder.UseStartup<Startup>();
                     }

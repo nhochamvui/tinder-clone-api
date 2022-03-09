@@ -13,7 +13,9 @@ namespace TinderClone.Models
         [Required]
         public string ImageURL { get; set; }
 
-        public long UserID { get; set; }
-        public User User { set; get; }
+        public string DeleteURL { get; set; }
+
+        public long ProfileID { get; set; }
+        public Profile Profile { set; get; }
     }
 }

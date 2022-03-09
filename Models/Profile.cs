@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Collections.Generic;
 
 namespace TinderClone.Models
 {
@@ -30,8 +31,12 @@ namespace TinderClone.Models
 
         //navigation prop
         public long UserID { get; set; }
+
         [System.Text.Json.Serialization.JsonIgnore]
         public User User { get; set; }
+
+        //navigation
+        public ICollection<ProfileImages> ProfileImages { get; set; }
 
         public Profile() { }
 

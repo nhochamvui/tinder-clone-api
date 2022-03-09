@@ -206,7 +206,9 @@ namespace TinderClone.Migrations
                             DateOfBirth = new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "a@gmail.com",
                             Gender = 0,
+                            Latitude = "10.0371100",
                             Location = "Hồ Chí Minh",
+                            Longitude = "105.7882500",
                             Name = "Tho",
                             Phone = "0907904598",
                             UserID = 1L
@@ -218,7 +220,9 @@ namespace TinderClone.Migrations
                             DateOfBirth = new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "a1@gmail.com",
                             Gender = 1,
+                            Latitude = "10.045783",
                             Location = "Hồ Chí Minh",
+                            Longitude = "105.761412",
                             Name = "Jan",
                             Phone = "0907904598",
                             UserID = 2L
@@ -232,16 +236,19 @@ namespace TinderClone.Migrations
                         .HasColumnType("bigint")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
 
+                    b.Property<string>("DeleteURL")
+                        .HasColumnType("text");
+
                     b.Property<string>("ImageURL")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<long>("UserID")
+                    b.Property<long>("ProfileID")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserID");
+                    b.HasIndex("ProfileID");
 
                     b.ToTable("ProfileImages");
 
@@ -249,20 +256,14 @@ namespace TinderClone.Migrations
                         new
                         {
                             Id = 1L,
-                            ImageURL = "img/unclebob.jpg",
-                            UserID = 1L
+                            ImageURL = "https://i.ibb.co/VYgMyVd/217772307-360659078758844-3269291223653109900-n.jpg",
+                            ProfileID = 1L
                         },
                         new
                         {
                             Id = 2L,
-                            ImageURL = "img/unclebob1.jpg",
-                            UserID = 1L
-                        },
-                        new
-                        {
-                            Id = 3L,
-                            ImageURL = "img/auntbob.jpg",
-                            UserID = 2L
+                            ImageURL = "https://i.ibb.co/6mYstg7/273538889-1378020902629820-5496867161341207743-n.jpg",
+                            ProfileID = 2L
                         });
                 });
 
@@ -365,20 +366,23 @@ namespace TinderClone.Migrations
 
             modelBuilder.Entity("TinderClone.Models.ProfileImages", b =>
                 {
-                    b.HasOne("TinderClone.Models.User", "User")
+                    b.HasOne("TinderClone.Models.Profile", "Profile")
                         .WithMany("ProfileImages")
-                        .HasForeignKey("UserID")
+                        .HasForeignKey("ProfileID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
+                    b.Navigation("Profile");
+                });
+
+            modelBuilder.Entity("TinderClone.Models.Profile", b =>
+                {
+                    b.Navigation("ProfileImages");
                 });
 
             modelBuilder.Entity("TinderClone.Models.User", b =>
                 {
                     b.Navigation("Profile");
-
-                    b.Navigation("ProfileImages");
                 });
 #pragma warning restore 612, 618
         }

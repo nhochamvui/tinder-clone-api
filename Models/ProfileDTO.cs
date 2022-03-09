@@ -13,11 +13,11 @@ namespace TinderClone.Models
 
         public string Gender { get; set; }
 
-        public string Email { get; set; }
-
         public string Location { get; set; }
 
         public string About { get; set; }
+
+        public long UserID { get; set; }
 
         [JsonConstructor]
         public ProfileDTO(string about, string location, string dateOfBirth)
@@ -33,9 +33,9 @@ namespace TinderClone.Models
             Age = ((DateTime.UtcNow - profile.DateOfBirth).Days / 365);
             DateOfBirth = profile.DateOfBirth.ToShortDateString();
             Gender = Models.User.GetGender(profile.Gender);
-            Email =  profile.Email;
             Location = profile.Location;
             About = profile.About;
+            UserID = profile.UserID;
         }
     }
 }
