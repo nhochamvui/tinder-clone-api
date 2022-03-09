@@ -53,7 +53,13 @@ namespace TinderClone.Controllers
         public async Task<ActionResult<IEnumerable<string>>> GetProfileImages()
         {
             long myId = Convert.ToInt64(HttpContext.User.FindFirst("id")?.Value);
-            List<string> profileImages = UserDTO.GetProfileImages(_context, myId);
+            var profileID = await _context.Profiles.Where(x => x.UserID == myId).Select(x => x.Id).FirstOrDefaultAsync();
+
+            if(profileID == default)
+            {
+                return Unauthorized("User does not exist");
+            }
+            List<string> profileImages = UserDTO.GetProfileImages(_context, profileID);
             return profileImages;
         }
 
