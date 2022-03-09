@@ -135,21 +135,18 @@ namespace TinderClone
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, TinderContext tinderContext)
         {
-            if (!env.IsProduction())
+            Console.WriteLine("--> Running migration");
+            Console.WriteLine("--> Connection String: " + tinderContext.Database.GetConnectionString());
+            Console.WriteLine("--> Is database can connect: " + tinderContext.Database.CanConnect());
+            try
             {
-                Console.WriteLine("--> Running migration");
-                Console.WriteLine("--> Connection String: " + tinderContext.Database.GetConnectionString());
-                Console.WriteLine("--> Is database can connect: " + tinderContext.Database.CanConnect());
-                try
-                {
-                    tinderContext.Database.Migrate();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("************Start**************");
-                    Console.WriteLine("Exception during migrate database: " + ex.Message);
-                    Console.WriteLine("************End**************");
-                }
+                tinderContext.Database.Migrate();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("************Start**************");
+                Console.WriteLine("Exception during migrate database: " + ex.Message);
+                Console.WriteLine("************End**************");
             }
             
             if (env.IsDevelopment())
