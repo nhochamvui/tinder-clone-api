@@ -115,6 +115,7 @@ namespace TinderClone
                 {
                     builder
                     .WithOrigins(new string[] {
+                        "https://tinderclonev2.netlify.app/",
                         "https://tinderclonev2.netlify.app",
                         "http://192.168.1.8:8080", 
                         "https://192.168.1.8:8080", "https://localhost:8080", 
