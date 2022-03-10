@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -36,6 +37,8 @@ namespace TinderClone.Controllers
         public async Task<ActionResult> PostMatches([FromBody] Models.User obj)
         {
             long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
+            var profileID = await _context.Profiles.Where(x => x.UserID == myId).Select(x => x.Id).FirstOrDefaultAsync();
+
             int likeCount = _context.DiscoverySettings.Where(x => x.UserID == myId).Select(x => x.LikeCount).FirstOrDefault();
 
             if(likeCount == 0)
@@ -44,7 +47,7 @@ namespace TinderClone.Controllers
             }
 
             Matches myMatches = _context.Matches.SingleOrDefault(x => x.MyId == myId && x.ObjectId == obj.Id);
-            Matches objMatch = _context.Matches.SingleOrDefault(x => x.MyId == obj.Id && x.ObjectId == myId && !x.IsDislike);
+            Matches objMatch = _context.Matches.SingleOrDefault(x => x.MyId == obj.Id && x.ObjectId == myId && !x.IsMatched && !x.IsDislike);
 
             if (myMatches == null)
             {
@@ -64,6 +67,7 @@ namespace TinderClone.Controllers
             {
                 myMatches.IsMatched = true;
                 objMatch.IsMatched = true;
+                objMatch.DateOfMatch = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 _context.Entry(objMatch).State = EntityState.Modified;
                 _context.Entry(myMatches).State = EntityState.Modified;
                 try
@@ -80,11 +84,41 @@ namespace TinderClone.Controllers
                     {
                         Console.WriteLine("Exception when matching: ", ex);
                         Console.WriteLine("my ID: ", myId, " | his/her's ID: ", obj.Id);
-                        throw;
+                        return StatusCode(500);
                     }
                 }
             }
-            return Ok(new Matches(myMatches.ObjectId, myMatches.IsMatched));
+
+            var match = _context.Matches.Where(x => x.IsMatched && x.MyId == myId && x.ObjectId == obj.Id);
+            var profileImages = await _context.ProfileImages.Where(x => x.ProfileID == profileID).Select(x => x.ImageURL).ToListAsync();
+
+            if (match.Any())
+            {
+                var result = await match.Join(_context.Users, m => m.ObjectId, u => u.Id, (m, u) => new
+                    {
+                        DateOfMatch = m.DateOfMatch,
+                        UserID = u.Id
+                    })
+                    .Join(_context.Profiles, x => x.UserID, p => p.UserID, (x, p) => new
+                    {
+                        Id = x.UserID,
+                        x.DateOfMatch,
+                        p.Name,
+                        DateOfBirth = p.DateOfBirth.ToShortDateString(),
+                        Age = ((DateTime.UtcNow - p.DateOfBirth).Days / 365).ToString(),
+                        p.Gender,
+                        p.About,
+                        p.Location,
+                        ProfileImages = _context.ProfileImages.Where(x => x.ProfileID == p.Id).Select(x => x.ImageURL).ToList()
+                    }).FirstOrDefaultAsync();
+
+                if(result != default)
+                {
+                    return Ok(new { isMatched = true, match = result });
+                }
+            }
+
+            return StatusCode(500);
         }
 
         [Authorize]
@@ -201,8 +235,18 @@ namespace TinderClone.Controllers
                                             Models.User.GetAge(x.DateOfBirth) <= userFilter.maxAge);
             }
 
-            var userDTOs = predicate.Select(x => new ProfileDTO(x));
-            return Ok(userDTOs);
+            var profileDTOs = predicate.Select(x => new {
+                Name = x.Name,
+                Age = ((DateTime.UtcNow - x.DateOfBirth).Days / 365),
+                DateOfBirth = x.DateOfBirth.ToShortDateString(),
+                Gender = Models.User.GetGender(x.Gender),
+                Location = x.Location,
+                About = x.About,
+                UserID = x.UserID,
+                ProfileImages = UserDTO.GetProfileImages(_context, x.Id),
+            });
+
+            return Ok(profileDTOs);
         }
 
         [HttpPost("dislike")]
