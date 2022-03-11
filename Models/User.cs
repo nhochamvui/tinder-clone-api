@@ -68,6 +68,22 @@ namespace TinderClone.Models
             }
         }
 
+        public static int GetGender2(string sex)
+        {
+            if (sex.Equals(Sex.Male.ToString().ToLower()))
+            {
+                return (int)Sex.Male;
+            }
+            else if (sex.Equals(Sex.Female.ToString().ToLower()))
+            {
+                return (int)Sex.Female;
+            }
+            else
+            {
+                return (int)Sex.Other;
+            }
+        }
+
         public static int GetAge(DateTime dateOfBirth)
         {
             return (DateTime.UtcNow - dateOfBirth).Days / 365;

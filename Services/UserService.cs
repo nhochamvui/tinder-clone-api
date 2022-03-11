@@ -182,18 +182,31 @@ namespace TinderClone.Services
             await _dbContext.SaveChangesAsync();
 
             // create profileimages
-            ImgBBResponse imgBBResponse = await this.UploadIMGBB(facebookUserData.photo);
-            if(imgBBResponse == null || string.IsNullOrEmpty(imgBBResponse.Data.DisplayUrl))
+            if(facebookUserData.photo != null)
             {
-                imgBBResponse.Data.DisplayUrl = "https://i.ibb.co/VYgMyVd/217772307-360659078758844-3269291223653109900-n.jpg";
+                ImgBBResponse imgBBResponse = await this.UploadIMGBB(facebookUserData.photo);
+                if (imgBBResponse == null || string.IsNullOrEmpty(imgBBResponse.Data.DisplayUrl))
+                {
+                    imgBBResponse.Data.DisplayUrl = "https://i.ibb.co/4drKLcS/make-friends.png";
+                }
+
+                await _dbContext.ProfileImages.AddAsync(new ProfileImages
+                {
+                    ImageURL = imgBBResponse.Data.DisplayUrl,
+                    DeleteURL = imgBBResponse.Data.DeleteUrl,
+                    ProfileID = profile.Id
+                });
+            }
+            else
+            {
+                await _dbContext.ProfileImages.AddAsync(new ProfileImages
+                {
+                    ImageURL = "https://i.ibb.co/4drKLcS/make-friends.png",
+                    DeleteURL = string.Empty,
+                    ProfileID = profile.Id
+                });
             }
 
-            await _dbContext.ProfileImages.AddAsync(new ProfileImages
-            {
-                ImageURL = imgBBResponse.Data.DisplayUrl,
-                DeleteURL = imgBBResponse.Data.DeleteUrl,
-                ProfileID = profile.Id
-            });
             await _dbContext.SaveChangesAsync();
 
             int profileImagesCount = _dbContext.ProfileImages.Where(s => s.ProfileID == profile.Id).Count();

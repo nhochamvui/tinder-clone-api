@@ -32,7 +32,7 @@ namespace TinderClone.Models
         {
             Name = facebookUser.Name;
             DateOfBirth = DateTime.ParseExact(facebookUser.Birthday, "MM/dd/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None);
-            Gender = Models.User.GetGender(facebookUser.Gender ?? "Other");
+            Gender = Models.User.GetGender2(facebookUser.Gender ?? "Other");
             Email = facebookUser.Email;
         }
 
