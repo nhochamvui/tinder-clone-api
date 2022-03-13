@@ -28,8 +28,8 @@ namespace TinderClone.Hubs
 
         public async Task SendMessage(string targetID, string content)
         {
-            long senderID = Int32.Parse(Context.User.Claims.Where(x => x.Type.Equals("id")).Select(x => x.Value).FirstOrDefault().ToString());
-            Messages messages = new Messages(senderID, Int32.Parse(targetID), content, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), false, true);
+            long senderID = Int64.Parse(Context.User.Claims.Where(x => x.Type.Equals("id")).Select(x => x.Value).FirstOrDefault().ToString());
+            Messages messages = new Messages(senderID, Int64.Parse(targetID), content, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), false, true);
             await _context.Messages.AddAsync(messages);
             await _context.SaveChangesAsync();
             var message = _context.Messages.SingleOrDefault(m => m.Id == messages.Id);
