@@ -150,10 +150,7 @@ namespace TinderClone.Controllers
                     })
                     .OrderByDescending(x => x.DateOfMatch)
                 .ToListAsync();
-                //foreach (var item in result)
-                //{
-                //    item.ProfileImages.AddRange(UserDTO.GetProfileImages(_context, item.));
-                //}
+
                 return Ok(result);
             }
 
@@ -222,13 +219,6 @@ namespace TinderClone.Controllers
                 predicate = predicate.Where(x => x.Gender == userFilter.Gender);
             }
 
-            /***** Deprecated
-            if (!string.IsNullOrWhiteSpace(userFilter.Location))
-            {
-                predicate = predicate.Where(x => x.Location == userFilter.Location);
-            }
-            *******/
-
             if (userFilter.minAge != 0 && userFilter.maxAge != 0)
             {
                 predicate = predicate.Where(x => Models.User.GetAge(x.DateOfBirth) >= userFilter.minAge &&
@@ -240,10 +230,10 @@ namespace TinderClone.Controllers
                 Age = ((DateTime.UtcNow - x.DateOfBirth).Days / 365),
                 DateOfBirth = x.DateOfBirth.ToShortDateString(),
                 Gender = Models.User.GetGender(x.Gender),
-                Location = x.Location,
+                Hometown = x.Hometown,
                 About = x.About,
                 UserID = x.UserID,
-                ProfileImages = UserDTO.GetProfileImages(_context, x.Id),
+                ProfileImages = Profile.GetProfileImages(_context, x.Id),
             });
 
             return Ok(profileDTOs);

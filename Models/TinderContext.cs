@@ -38,21 +38,11 @@ namespace TinderClone.Models
                 Id = 1,
                 UserName = "unclebob",
                 Password = "1234",
-                Name = "Uncle Bob",
-                Email = "uncle.bob@gmail.com",
-                DateOfBirth = new DateTime(1998, 04, 25),
-                Location = "Hồ Chí Minh",
-                Gender = (int)Sex.Male
             }, new User
             {
                 Id = 2,
                 UserName = "auntbob",
                 Password = "1234",
-                Name = "Aunt Bob",
-                Email = "aunt.bob@gmail.com",
-                DateOfBirth = new DateTime(1999, 04, 25),
-                Gender = (int)Sex.Female,
-                Location = "Cần Thơ"
             });
 
             modelBuilder.Entity<DiscoverySettings>().HasData(new DiscoverySettings

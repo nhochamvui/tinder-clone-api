@@ -48,76 +48,6 @@ namespace TinderClone.Controllers
             return await _context.Users.ToListAsync();
         }
 
-        [HttpGet("profileImages")]
-        [Authorize]
-        public async Task<ActionResult<IEnumerable<string>>> GetProfileImages()
-        {
-            long myId = Convert.ToInt64(HttpContext.User.FindFirst("id")?.Value);
-            var profileID = await _context.Profiles.Where(x => x.UserID == myId).Select(x => x.Id).FirstOrDefaultAsync();
-
-            if(profileID == default)
-            {
-                return Unauthorized("User does not exist");
-            }
-            List<string> profileImages = UserDTO.GetProfileImages(_context, profileID);
-            return profileImages;
-        }
-
-        [HttpPatch("profileImages")]
-        [Authorize]
-        public async Task<ActionResult> RemoveProfileImage([FromBody] int imageIndex)
-        {
-            long myId = Convert.ToInt64(HttpContext.User.FindFirst("id")?.Value);
-            var profileID = await _context.Profiles.Where(x => x.UserID == myId).Select(x => x.Id).FirstOrDefaultAsync();
-            
-            if(profileID == default)
-            {
-                return Unauthorized("User does not exist");
-            }
-
-            var profileImages = await _context.ProfileImages
-                                    .Where(p => p.ProfileID == profileID).Select(p => p)
-                                    .OrderByDescending(p => p.Id)
-                                    .Reverse().ToListAsync();
-            if (profileImages.Any())
-            {
-                if(imageIndex > profileImages.Count - 1)
-                {
-                    profileImages.Add(new ProfileImages
-                    {
-                        ImageURL = string.Empty,
-                        DeleteURL = string.Empty,
-                        ProfileID = profileID,
-                    });
-                }
-                else
-                {
-                    profileImages[imageIndex].ImageURL = string.Empty;
-                    profileImages[imageIndex].DeleteURL = string.Empty;
-                    _context.ProfileImages.Update(profileImages[imageIndex]);
-                }
-                
-                try
-                {
-                    await _context.SaveChangesAsync();
-
-                    return Ok();
-                }
-                catch (Exception e)
-                {
-                    if (!UserExists(myId))
-                    {
-                        return NotFound();
-                    }
-                    Console.WriteLine("Exception while update profile image: " + e.Message);
-
-                    return StatusCode(500, new { message = "Failed to update the database!" });
-                }
-            }
-
-            return NotFound();
-        }
-
         // GET: api/Users/5
         [Authorize]
         [HttpGet]
@@ -131,55 +61,10 @@ namespace TinderClone.Controllers
                 return Ok(new
                 {
                     id = user.Id,
-                    name = user.Name,
-                    age = ((DateTime.UtcNow - user.DateOfBirth).Days / 365).ToString(),
-                    dob = user.DateOfBirth.ToShortDateString(),
-                    gender = Models.User.GetGender(user.Gender),
-                    email = user.Email,
-                    location = user.Location,
-                    about = user.About ??= "",
                 });
             }
 
             return NotFound();
-        }
-
-
-        [Authorize]
-        [HttpGet("profile")]
-        public async Task<ActionResult> Profile()
-        {
-            long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
-            var user = await _context.Users.FindAsync(myId);
-
-            if (user != null)
-            {
-                var isProfileExist = await _context.Profiles.AnyAsync(x => x.UserID == myId);
-                if (isProfileExist)
-                {
-                    var profile = await _context.Profiles.FirstOrDefaultAsync(x => x.UserID == myId);
-                    return Ok(new ProfileDTO(profile));
-                }
-            }
-            var res = new HttpResponseMessage(HttpStatusCode.NotFound)
-            {
-                Content = new StringContent("Profile does not exist."),
-            };
-            return NotFound(res);
-        }
-
-        [Authorize]
-        [HttpPost("getuserbylocation")]
-        public async Task<ActionResult<IEnumerable<UserDTO>>> GetUserByLocation(Param param)
-        {
-            long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
-            var users = await _context.Users.Where(x => x.Location.Equals(param.Location) && x.Id != myId).ToListAsync();
-            List<UserDTO> userDTOs = new List<UserDTO>();
-            foreach (var item in users)
-            {
-                userDTOs.Add(new UserDTO(_context, item));
-            }
-            return Ok(userDTOs);
         }
 
         // PUT: api/Users/5
@@ -216,28 +101,28 @@ namespace TinderClone.Controllers
 
         [HttpPatch]
         [Authorize]
-        public async Task<IActionResult> UpdateUser(User userInfo)
+        public async Task<IActionResult> UpdateUser(Profile userInfo)
         {
             long myID = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
-            User user = _context.Users.Where(x => x.Id == myID).FirstOrDefault();
+            var profile = _context.Profiles.Where(x => x.UserID == myID).FirstOrDefault();
             bool isUpdated = false;
-            if (user != default)
+            if (profile != default)
             {
                 if (!string.IsNullOrEmpty(userInfo.Location))
                 {
-                    user.Location = userInfo.Location;
+                    profile.Location = userInfo.Location;
                     isUpdated = true;
                 }
 
                 if (!string.IsNullOrEmpty(userInfo.About))
                 {
-                    user.About = userInfo.About;
+                    profile.About = userInfo.About;
                     isUpdated = true;
                 }
 
                 if (isUpdated)
                 {
-                    _context.Users.Update(user);
+                    _context.Profiles.Update(profile);
 
                     try
                     {
@@ -293,7 +178,6 @@ namespace TinderClone.Controllers
             if (!string.IsNullOrWhiteSpace(userParam.UserName) && !string.IsNullOrWhiteSpace(userParam.Password))
             {
                 var user = _context.Users.SingleOrDefault(x => x.UserName.Equals(userParam.UserName) && x.Password.Equals(userParam.Password));
-                
 
                 if (user != null)
                 {
@@ -313,13 +197,6 @@ namespace TinderClone.Controllers
                         new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString()),
                         new Claim("id", user.Id.ToString()),
                         new Claim("userName", user.UserName),
-                        new Claim("name", user.Name),
-                        new Claim("age", ((DateTime.UtcNow - user.DateOfBirth).Days/365).ToString()),
-                        new Claim("dob", user.DateOfBirth.ToShortDateString()),
-                        new Claim("gender", Models.User.GetGender(user.Gender)),
-                        new Claim("email", user.Email),
-                        new Claim("location", user.Location),
-                        new Claim("about", user.About ??= ""),
                     };
                     var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
                     var signinCredential = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -337,7 +214,7 @@ namespace TinderClone.Controllers
                             DistancePreference = 0,
                             DistancePreferenceCheck = false,
                             LikeCount = 30,
-                            Location = user.Location,
+                            Location = string.Empty,
                             LookingForGender = TinderClone.Models.User.GetGender("Other"),
                             MaxAge = 100,
                             MinAge = 18,
@@ -670,7 +547,7 @@ namespace TinderClone.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Internal Server Error. Something went Wrong!");
+                return StatusCode(500, "Internal Server Error. Something went Wrong! " + ex);
             }
 
             return Created(imgBBResponse.Data.DisplayUrl, new { index = index });
@@ -678,16 +555,16 @@ namespace TinderClone.Controllers
 
         [HttpPatch("setgender")]
         [Authorize]
-        public async Task<IActionResult> SetGender([FromBody] Models.User param)
+        public async Task<IActionResult> SetGender([FromBody] Models.Profile param)
         {
             long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
-            var user = await _context.Users.SingleOrDefaultAsync(x => x.Id == myId);
-            if (user != default)
+            var profile = await _context.Profiles.SingleOrDefaultAsync(x => x.UserID == myId);
+            if (profile != default)
             {
                 if (!string.IsNullOrWhiteSpace(Models.User.GetGender(param.Gender)))
                 {
-                    user.Gender = param.Gender;
-                    _context.Users.Update(user);
+                    profile.Gender = param.Gender;
+                    _context.Profiles.Update(profile);
                     try
                     {
                         await _context.SaveChangesAsync();
@@ -705,11 +582,11 @@ namespace TinderClone.Controllers
         }
 
         [HttpPost("check/email")]
-        public async Task<IActionResult> CheckEmail(Models.User param)
+        public async Task<IActionResult> CheckEmail(Models.Profile param)
         {
             if (!param.Email.Equals(string.Empty))
             {
-                var isExist = await _context.Users.AnyAsync(x => x.Email.Equals(param.Email.Trim()));
+                var isExist = await _context.Profiles.AnyAsync(x => x.Email.Equals(param.Email.Trim()));
                 return isExist ? StatusCode(422) : Ok();
             }
 

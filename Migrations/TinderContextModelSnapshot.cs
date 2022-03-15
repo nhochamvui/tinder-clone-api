@@ -173,6 +173,9 @@ namespace TinderClone.Migrations
                     b.Property<int>("Gender")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Hometown")
+                        .HasColumnType("text");
+
                     b.Property<string>("Latitude")
                         .HasColumnType("text");
 
@@ -274,24 +277,6 @@ namespace TinderClone.Migrations
                         .HasColumnType("bigint")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
 
-                    b.Property<string>("About")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("DateOfBirth")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Email")
-                        .HasColumnType("text");
-
-                    b.Property<int>("Gender")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Location")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Name")
-                        .HasColumnType("text");
-
                     b.Property<string>("Password")
                         .HasColumnType("text");
 
@@ -306,22 +291,12 @@ namespace TinderClone.Migrations
                         new
                         {
                             Id = 1L,
-                            DateOfBirth = new DateTime(1998, 4, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "uncle.bob@gmail.com",
-                            Gender = 0,
-                            Location = "Hồ Chí Minh",
-                            Name = "Uncle Bob",
                             Password = "1234",
                             UserName = "unclebob"
                         },
                         new
                         {
                             Id = 2L,
-                            DateOfBirth = new DateTime(1999, 4, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "aunt.bob@gmail.com",
-                            Gender = 1,
-                            Location = "Cần Thơ",
-                            Name = "Aunt Bob",
                             Password = "1234",
                             UserName = "auntbob"
                         });

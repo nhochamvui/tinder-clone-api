@@ -30,10 +30,7 @@ namespace TinderClone
                     else
                     {
                         webBuilder
-                        //.UseKestrel()
-                        //.UseContentRoot(Directory.GetCurrentDirectory())
                         .UseUrls("http://*:" + port)
-                        //.UseIISIntegration()
                         .UseStartup<Startup>();
                     }
                 });

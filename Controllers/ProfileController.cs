@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Net;
+using System.Net.Http;
 using System.Reflection;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -30,6 +32,29 @@ namespace TinderClone.Controllers
             _config = config;
             _context = context;
             _userService = userService;
+        }
+
+        [Authorize]
+        [HttpGet]
+        public async Task<ActionResult> Profile()
+        {
+            long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
+            var user = await _context.Users.FindAsync(myId);
+
+            if (user != null)
+            {
+                var isProfileExist = await _context.Profiles.AnyAsync(x => x.UserID == myId);
+                if (isProfileExist)
+                {
+                    var profile = await _context.Profiles.FirstOrDefaultAsync(x => x.UserID == myId);
+                    return Ok(new ProfileDTO(profile));
+                }
+            }
+            var res = new HttpResponseMessage(HttpStatusCode.NotFound)
+            {
+                Content = new StringContent("Profile does not exist."),
+            };
+            return NotFound(res);
         }
 
         [HttpGet("location")]
@@ -96,9 +121,9 @@ namespace TinderClone.Controllers
             bool isUpdated = false;
             if (profile != default)
             {
-                if (!string.IsNullOrEmpty(userInfo.Location))
+                if (!string.IsNullOrEmpty(userInfo.Hometown))
                 {
-                    profile.Location = userInfo.Location;
+                    profile.Hometown = userInfo.Hometown;
                     isUpdated = true;
                 }
 
@@ -132,6 +157,82 @@ namespace TinderClone.Controllers
 
             return Ok();
         }
+
+        [HttpPatch("profileImages")]
+        [Authorize]
+        public async Task<ActionResult> RemoveProfileImage([FromBody] int imageIndex)
+        {
+            long myId = Convert.ToInt64(HttpContext.User.FindFirst("id")?.Value);
+            var profileID = await _context.Profiles.Where(x => x.UserID == myId).Select(x => x.Id).FirstOrDefaultAsync();
+
+            if(imageIndex == 0)
+            {
+                return BadRequest();
+            }
+
+            if (profileID == default)
+            {
+                return Unauthorized("User does not exist");
+            }
+
+            var profileImages = await _context.ProfileImages
+                                    .Where(p => p.ProfileID == profileID).Select(p => p)
+                                    .OrderByDescending(p => p.Id)
+                                    .Reverse().ToListAsync();
+            if (profileImages.Any())
+            {
+                if (imageIndex > profileImages.Count - 1)
+                {
+                    profileImages.Add(new ProfileImages
+                    {
+                        ImageURL = string.Empty,
+                        DeleteURL = string.Empty,
+                        ProfileID = profileID,
+                    });
+                }
+                else
+                {
+                    profileImages[imageIndex].ImageURL = string.Empty;
+                    profileImages[imageIndex].DeleteURL = string.Empty;
+                    _context.ProfileImages.Update(profileImages[imageIndex]);
+                }
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+
+                    return Ok();
+                }
+                catch (Exception e)
+                {
+                    if (!UserExists(myId))
+                    {
+                        return NotFound();
+                    }
+                    Console.WriteLine("Exception while update profile image: " + e.Message);
+
+                    return StatusCode(500, new { message = "Failed to update the database!" });
+                }
+            }
+
+            return NotFound();
+        }
+
+        [HttpGet("profileImages")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<string>>> GetProfileImages()
+        {
+            long myId = Convert.ToInt64(HttpContext.User.FindFirst("id")?.Value);
+            var profileID = await _context.Profiles.Where(x => x.UserID == myId).Select(x => x.Id).FirstOrDefaultAsync();
+
+            if (profileID == default)
+            {
+                return Unauthorized("User does not exist");
+            }
+            List<string> profileImages = Models.Profile.GetProfileImages(_context, profileID);
+            return profileImages;
+        }
+
         private bool UserExists(long id)
         {
             return _context.Users.Any(e => e.Id == id);

@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace TinderClone.Models
 {
@@ -20,6 +21,8 @@ namespace TinderClone.Models
         public string Email { get; set; }
 
         public string About { get; set; }
+
+        public string Hometown { get; set; }
 
         public string Location { get; set; }
 
@@ -77,6 +80,21 @@ namespace TinderClone.Models
             Gender = signupDTO.Gender;
             Email = signupDTO.Email;
             UserID = userID;
+        }
+
+        public static List<string> GetProfileImages(TinderContext context, long profileID)
+        {
+            List<string> results = new();
+            var test = context.ProfileImages
+                       .Where(x => x.ProfileID == profileID)
+                       .Select(x => new { x.ImageURL, x.Id })
+                       .OrderByDescending(x => x.Id).Reverse().ToArray();
+
+            foreach (var item in test)
+            {
+                results.Add(item.ImageURL);
+            }
+            return results;
         }
     }
 }

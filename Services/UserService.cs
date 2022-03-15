@@ -54,6 +54,11 @@ namespace TinderClone.Services
 
         public async Task<ImgBBResponse> UploadIMGBB(IFormFile photo)
         {
+            if(photo == null)
+            {
+                return null;
+            }
+
             var content = new MultipartFormDataContent();
             content.Add(new StreamContent(photo.OpenReadStream()), "image", photo.FileName+DateTime.Now.Ticks.ToString());
             var key = "e304a1574ce97d35f1ca6b92b240291d";
@@ -136,10 +141,6 @@ namespace TinderClone.Services
             var user = new User
             {
                 Id = facebookUserData.Id,
-                DateOfBirth = new DateTime(),
-                Email = facebookUserData.Email,
-                Location = facebookUserData.Locale,
-                Name = facebookUserData.Name
             };
 
             if (await _dbContext.Users.AnyAsync(x => x.Id == facebookUserData.Id))
@@ -148,10 +149,12 @@ namespace TinderClone.Services
             }
 
             // create profile
-            var profile = new Profile(new SignupDTO(facebookUserData), user.Id);
-            profile.Location = location.City + ", " + location.Country;
-            profile.Longitude = location.Longtitude;
-            profile.Latitude = location.Latitude;
+            var profile = new Profile(new SignupDTO(facebookUserData), user.Id)
+            {
+                Location = (string.IsNullOrEmpty(location.City) ? location.City + ", " : string.Empty) + location.Country,
+                Longitude = location.Longtitude,
+                Latitude = location.Latitude
+            };
             if (await _dbContext.Profiles.AnyAsync(x => x.UserID == user.Id))
             {
                 return new Result { IsSuccess = false, Error = "User is exist" };
@@ -171,7 +174,7 @@ namespace TinderClone.Services
                     DistancePreference = 2,
                     DistancePreferenceCheck = false,
                     LikeCount = 30,
-                    Location = user.Location,
+                    Location = profile.Location,
                     LookingForGender = TinderClone.Models.User.GetGender("Other"),
                     MaxAge = 100,
                     MinAge = 18,

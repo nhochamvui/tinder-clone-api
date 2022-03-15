@@ -32,13 +32,7 @@ namespace TinderClone.Migrations
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserName = table.Column<string>(type: "text", nullable: true),
-                    Password = table.Column<string>(type: "text", nullable: true),
-                    Name = table.Column<string>(type: "text", nullable: true),
-                    DateOfBirth = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
-                    Gender = table.Column<int>(type: "integer", nullable: false),
-                    Email = table.Column<string>(type: "text", nullable: true),
-                    About = table.Column<string>(type: "text", nullable: true),
-                    Location = table.Column<string>(type: "text", nullable: true)
+                    Password = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -114,6 +108,7 @@ namespace TinderClone.Migrations
                     Gender = table.Column<int>(type: "integer", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: true),
                     About = table.Column<string>(type: "text", nullable: true),
+                    Hometown = table.Column<string>(type: "text", nullable: true),
                     Location = table.Column<string>(type: "text", nullable: true),
                     Longitude = table.Column<string>(type: "text", nullable: true),
                     Latitude = table.Column<string>(type: "text", nullable: true),
@@ -154,11 +149,11 @@ namespace TinderClone.Migrations
 
             migrationBuilder.InsertData(
                 table: "Users",
-                columns: new[] { "Id", "About", "DateOfBirth", "Email", "Gender", "Location", "Name", "Password", "UserName" },
+                columns: new[] { "Id", "Password", "UserName" },
                 values: new object[,]
                 {
-                    { 1L, null, new DateTime(1998, 4, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), "uncle.bob@gmail.com", 0, "Hồ Chí Minh", "Uncle Bob", "1234", "unclebob" },
-                    { 2L, null, new DateTime(1999, 4, 25, 0, 0, 0, 0, DateTimeKind.Unspecified), "aunt.bob@gmail.com", 1, "Cần Thơ", "Aunt Bob", "1234", "auntbob" }
+                    { 1L, "1234", "unclebob" },
+                    { 2L, "1234", "auntbob" }
                 });
 
             migrationBuilder.InsertData(
@@ -172,11 +167,11 @@ namespace TinderClone.Migrations
 
             migrationBuilder.InsertData(
                 table: "Profiles",
-                columns: new[] { "Id", "About", "DateOfBirth", "Email", "Gender", "Latitude", "Location", "Longitude", "Name", "Phone", "UserID" },
+                columns: new[] { "Id", "About", "DateOfBirth", "Email", "Gender", "Hometown", "Latitude", "Location", "Longitude", "Name", "Phone", "UserID" },
                 values: new object[,]
                 {
-                    { 1L, "", new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "a@gmail.com", 0, "10.0371100", "Hồ Chí Minh", "105.7882500", "Tho", "0907904598", 1L },
-                    { 2L, "", new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "a1@gmail.com", 1, "10.045783", "Hồ Chí Minh", "105.761412", "Jan", "0907904598", 2L }
+                    { 1L, "", new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "a@gmail.com", 0, null, "10.0371100", "Hồ Chí Minh", "105.7882500", "Tho", "0907904598", 1L },
+                    { 2L, "", new DateTime(1998, 1, 29, 0, 0, 0, 0, DateTimeKind.Unspecified), "a1@gmail.com", 1, null, "10.045783", "Hồ Chí Minh", "105.761412", "Jan", "0907904598", 2L }
                 });
 
             migrationBuilder.InsertData(
