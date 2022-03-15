@@ -47,9 +47,19 @@ namespace TinderClone.Controllers
                 if (isProfileExist)
                 {
                     var profile = await _context.Profiles.FirstOrDefaultAsync(x => x.UserID == myId);
-                    return Ok(new ProfileDTO(profile));
+                    if(profile != default)
+                    {
+                        var profileImages = Models.Profile.GetProfileImages(_context, profile.Id);
+                        var profileDTO = new ProfileDTO(profile)
+                        {
+                            ProfileImages = profileImages
+                        };
+
+                        return Ok(profileDTO);
+                    }
                 }
             }
+
             var res = new HttpResponseMessage(HttpStatusCode.NotFound)
             {
                 Content = new StringContent("Profile does not exist."),

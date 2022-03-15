@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace TinderClone.Models
@@ -18,6 +19,8 @@ namespace TinderClone.Models
         public string About { get; set; }
 
         public long UserID { get; set; }
+
+        public ICollection<string> ProfileImages { get; set; }
 
         [JsonConstructor]
         public ProfileDTO(string about, string hometown, string dateOfBirth)
