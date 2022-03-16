@@ -175,7 +175,7 @@ namespace TinderClone.Services
                     DistancePreferenceCheck = false,
                     LikeCount = 30,
                     Location = profile.Location,
-                    LookingForGender = TinderClone.Models.User.GetGender("Other"),
+                    LookingForGender = 3,
                     MaxAge = 100,
                     MinAge = 18,
                     SuperlikeCount = 3,

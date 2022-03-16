@@ -76,5 +76,10 @@ namespace TinderClone.Models
         {
             return (DateTime.UtcNow - dateOfBirth).Days / 365;
         }
+
+        public static int GetNumberOfGender()
+        {
+            return Enum.GetNames(typeof(Sex)).Length;
+        }
     }
 }

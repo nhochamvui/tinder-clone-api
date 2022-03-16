@@ -18,6 +18,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using TinderClone.Models;
+using TinderClone.Models.Response;
 using TinderClone.Services;
 
 namespace TinderClone.Controllers
@@ -306,7 +307,7 @@ namespace TinderClone.Controllers
             // 1.generate an app access token
             if (!await _facebookService.IsAccessTokenValid(facebookUserData.AccessToken))
             {
-                return Unauthorized("Token is invalid");
+                return Unauthorized(new FacebookSignupResponse("Facebook token is invalid", false, null));
             }
 
             var userInfoResponse = await _facebookService.GetMe(facebookUserData.AccessToken);
@@ -316,7 +317,7 @@ namespace TinderClone.Controllers
             bool isUserExist = await _context.Users.AnyAsync(x => x.Id == userInfo.Id);
             if (isUserExist)
             {
-                return BadRequest("User is exist");
+                return BadRequest(new FacebookSignupResponse("User is exist", false, null));
             }
 
             // 4. ready to create the local user account (if necessary) and jwt
@@ -325,7 +326,7 @@ namespace TinderClone.Controllers
             {
                 if (prop.GetValue(facebookRequiredData, null) == null)
                 {
-                    return BadRequest("Required fields is empty");
+                    return BadRequest(new FacebookSignupResponse("Required fields is empty", false, null));
                 }
             }
 
@@ -336,16 +337,16 @@ namespace TinderClone.Controllers
             Result result = await _userService.CreateFromFB(facebookUserData, location);
             if (!result.IsSuccess) 
             {
-                return StatusCode(500, new { Content = new StringContent(result.Error) });
+                return StatusCode(500, new FacebookSignupResponse(result.Error, false, null));
             }
 
             var token = _userService.GetToken(userInfo.Id);
             if (token.Equals(string.Empty))
             {
-                return NotFound(new { message = "User is not found" });
+                return NotFound(new FacebookSignupResponse("User is not found", false, null));
             }
 
-            return Ok(new { accessToken = token });
+            return Ok(new FacebookSignupResponse(null, true, token.Result));
         }
 
         [HttpGet("discoverysettings")]

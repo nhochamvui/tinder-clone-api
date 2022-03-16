@@ -117,6 +117,10 @@ namespace TinderClone.Controllers
                     return Ok(new { isMatched = true, match = result });
                 }
             }
+            else
+            {
+                return Ok(new { isMatched = false });
+            }
 
             return StatusCode(500);
         }
@@ -214,7 +218,8 @@ namespace TinderClone.Controllers
             }
             
 
-            if (!string.IsNullOrWhiteSpace(userFilter.Gender.ToString()))
+            if (!string.IsNullOrWhiteSpace(userFilter.Gender.ToString())
+                && userFilter.Gender < Models.User.GetNumberOfGender())
             {
                 predicate = predicate.Where(x => x.Gender == userFilter.Gender);
             }
