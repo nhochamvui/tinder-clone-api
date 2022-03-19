@@ -1,15 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Security.Claims;
 using System.Threading.Tasks;
+using TinderClone.Hubs;
 using TinderClone.Models;
 using TinderClone.Models.RequestParam;
 using TinderClone.Services;
@@ -21,13 +19,15 @@ namespace TinderClone.Controllers
     public class MatchesController : ControllerBase
     {
         private readonly TinderContext _context;
-        private IConfiguration _config;
-        private IUserService _userService;
-        private ILocationService _locationService;
-        public MatchesController(TinderContext context, IConfiguration config, IUserService userService, ILocationService locationService)
+        private readonly IHubContext<Chat, IChatHub> _hubContext;
+        private readonly IConfiguration _config;
+        private readonly IUserService _userService;
+        private readonly ILocationService _locationService;
+        public MatchesController(TinderContext context, IHubContext<Chat, IChatHub> hubContext, IConfiguration config, IUserService userService, ILocationService locationService)
         {
             _config = config;
             _context = context;
+            _hubContext = hubContext;
             _userService = userService;
             _locationService = locationService;
         }
@@ -90,7 +90,6 @@ namespace TinderClone.Controllers
             }
 
             var match = _context.Matches.Where(x => x.IsMatched && x.MyId == myId && x.ObjectId == obj.Id);
-            var profileImages = await _context.ProfileImages.Where(x => x.ProfileID == profileID).Select(x => x.ImageURL).ToListAsync();
 
             if (match.Any())
             {
@@ -114,6 +113,7 @@ namespace TinderClone.Controllers
 
                 if(result != default)
                 {
+                    SendNewMatch(obj.Id, myId);
                     return Ok(new { isMatched = true, match = result });
                 }
             }
@@ -123,6 +123,27 @@ namespace TinderClone.Controllers
             }
 
             return StatusCode(500);
+        }
+
+        private void SendNewMatch(long targetID, long matchUserID)
+        {
+            var result = _context.Profiles.Where(p => p.UserID == matchUserID).Select(p => new
+            {
+                Id = matchUserID,
+                DateOfMatch = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                p.Name,
+                DateOfBirth = p.DateOfBirth.ToShortDateString(),
+                Age = ((DateTime.UtcNow - p.DateOfBirth).Days / 365).ToString(),
+                p.Gender,
+                p.About,
+                p.Location,
+                ProfileImages = _context.ProfileImages.Where(x => x.ProfileID == p.Id).Select(x => x.ImageURL).ToList()
+            }).FirstOrDefault();
+
+            if (result != default)
+            {
+                _hubContext.Clients.User(targetID.ToString()).NewMatch(new { isMatched = true, match = result });
+            }
         }
 
         [Authorize]
@@ -200,11 +221,10 @@ namespace TinderClone.Controllers
                 myLocation.Latitude = profile.Latitude;
             }
 
-            var myMatches = _context.Matches.Where(x => (x.MyId == myId && x.IsDislike == true)
-                                                   || x.MyId == myId).ToList();
+            var myMatches = _context.Matches.Where(x => x.MyId == myId).ToList();
 
             var predicate = _context.Profiles.Where(x => x.UserID != myId).ToList()
-                .GroupJoin(myMatches, x => x.Id, y => y.ObjectId, (x, y) => new { x, y })
+                .GroupJoin(myMatches, x => x.UserID, y => y.ObjectId, (x, y) => new { x, y })
                 .SelectMany(x => x.y.DefaultIfEmpty(), (x, y) => new { x.x, x.y })
                 .Where(x => x.y.Count() == 0).Select(x => x.x);
 

@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
@@ -17,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using TinderClone.Infrastructure;
 using TinderClone.Models;
 using TinderClone.Models.Response;
 using TinderClone.Services;
@@ -28,10 +26,11 @@ namespace TinderClone.Controllers
     public class UsersController : ControllerBase
     {
         private readonly TinderContext _context;
-        private IConfiguration _config;
+        private readonly IConfiguration _config;
         private readonly IUserService _userService;
         private readonly IFacebookService _facebookService;
         private readonly ILocationService _locationService;
+        private readonly IUsersRepository _usersRepository;
         public UsersController(TinderContext context, ILocationService locationService, IUserService userService, IFacebookService facebookService, IConfiguration config)
         {
             _config = config;
@@ -100,55 +99,10 @@ namespace TinderClone.Controllers
             return NoContent();
         }
 
-        [HttpPatch]
-        [Authorize]
-        public async Task<IActionResult> UpdateUser(Profile userInfo)
-        {
-            long myID = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
-            var profile = _context.Profiles.Where(x => x.UserID == myID).FirstOrDefault();
-            bool isUpdated = false;
-            if (profile != default)
-            {
-                if (!string.IsNullOrEmpty(userInfo.Location))
-                {
-                    profile.Location = userInfo.Location;
-                    isUpdated = true;
-                }
-
-                if (!string.IsNullOrEmpty(userInfo.About))
-                {
-                    profile.About = userInfo.About;
-                    isUpdated = true;
-                }
-
-                if (isUpdated)
-                {
-                    _context.Profiles.Update(profile);
-
-                    try
-                    {
-                        await _context.SaveChangesAsync();
-                    }
-                    catch (Exception e)
-                    {
-                        if (!UserExists(myID))
-                        {
-                            return NotFound();
-                        }
-
-                        Console.WriteLine("Failed while updating user info: " + e.Message);
-
-                        return StatusCode(500, new { message = "Failed to update the database" });
-                    }
-                }
-            }
-
-            return Ok();
-        }
-
         // POST: api/Users
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<User>> PostUser(User user)
         {
             _context.Users.Add(user);
@@ -261,46 +215,67 @@ namespace TinderClone.Controllers
             }
 
             var discoverySettings = _context.DiscoverySettings.Where(setting => setting.UserID == myId).FirstOrDefault();
-            var user = _context.Users.Where(u => u.Id == myId).FirstOrDefault();
-            var profile = _context.Profiles.Where(u => u.UserID == myId).FirstOrDefault();
+            var matches = _context.Matches.Where(m => m.MyId == myId || m.ObjectId == myId).ToArray();
+            var messages = _context.Messages.Where(m => m.fromID == myId || m.toID == myId).ToList();
             var profileImages = await _context.ProfileImages.Where(u => u.ProfileID == profileID).ToListAsync();
+            var profile = _context.Profiles.Where(u => u.UserID == myId).FirstOrDefault();
+            var user = _context.Users.Where(u => u.Id == myId).FirstOrDefault();
             if (discoverySettings == default || user == default || profile == default || profileImages.Count <= 0)
             {
                 return NotFound(new { message = "User not found" });
             }
 
             _context.DiscoverySettings.Remove(discoverySettings);
-            _context.Users.Remove(user);
-            _context.Profiles.Remove(profile);
+            _context.Matches.RemoveRange(matches);
+            _context.Messages.RemoveRange(messages);
             _context.ProfileImages.RemoveRange(profileImages);
-            await _context.SaveChangesAsync();
+            _context.Profiles.Remove(profile);
+            _context.Users.Remove(user);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Delete user '{myId}' occured an exception: {ex.Message}");
+                Console.WriteLine($"Delete user '{myId}' Stack Trace: {ex.StackTrace}");
+                return StatusCode(500, ex.Message);
+            }
+
             return Ok();
         }
 
+        //test
+        //login with fb accesstoken
         [HttpPost("fbauth")]
         public async Task<ActionResult> Login(FacebookAccessToken facebookAccessToken)
         {
             // 3. we've got a valid token so we can request user data from fb
             if (!await _facebookService.IsAccessTokenValid(facebookAccessToken.AccessToken))
             {
-                return Unauthorized("Invalid facebook token.");
+                return Unauthorized("Invalid facebook token");
             }
 
             var userInfoResponse = await _facebookService.GetMe(facebookAccessToken.AccessToken);
-            var userInfo = JsonConvert.DeserializeObject<FacebookUserData>(userInfoResponse.ToString(), 
-                new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore});
 
-            var isUserExist = await _context.Users.AnyAsync(x => x.Id == userInfo.Id);
-            if (!isUserExist)
+            if(userInfoResponse == null)
             {
-                return Ok();
+                return StatusCode(500, new FacebookSignupResponse("Facebook Internal's error", false, null));
             }
 
-            var token = await _userService.GetToken(userInfo.Id);
+            var isUserExist = await _userService.IsUserExist(userInfoResponse.Id);
+            if (!isUserExist)
+            {
+                return new OkObjectResult(string.Empty);
+            }
 
-            return Ok(new { accessToken = token });
+            var token = await _userService.GetToken(userInfoResponse.Id);
+
+            return new OkObjectResult(new { accessToken = token });
         }
 
+        //test
+        //signup with fb accesstoken
         [HttpPost("fbsignup")]
         public async Task<ActionResult> FacebookSignup([FromForm] FacebookUserData facebookUserData)
         {
@@ -314,7 +289,7 @@ namespace TinderClone.Controllers
             var userInfo = JsonConvert.DeserializeObject<FacebookUserData>(userInfoResponse.ToString(),
                 new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
 
-            bool isUserExist = await _context.Users.AnyAsync(x => x.Id == userInfo.Id);
+            bool isUserExist = await _userService.IsUserExist(userInfo.Id);
             if (isUserExist)
             {
                 return BadRequest(new FacebookSignupResponse("User is exist", false, null));
@@ -330,16 +305,18 @@ namespace TinderClone.Controllers
                 }
             }
 
-            // signup
+            // create user dependencies
             facebookUserData.Id = userInfo.Id;
             var ip = HttpContext.Request.Headers["x-forwarded-for"];
             GeoPluginResponse location = await _locationService.GetLocation(ip);
-            Result result = await _userService.CreateFromFB(facebookUserData, location);
+
+            Result result = await _userService.CreateUserFromFB(facebookUserData, location);
             if (!result.IsSuccess) 
             {
                 return StatusCode(500, new FacebookSignupResponse(result.Error, false, null));
             }
 
+            // generate token
             var token = _userService.GetToken(userInfo.Id);
             if (token.Equals(string.Empty))
             {
@@ -349,30 +326,42 @@ namespace TinderClone.Controllers
             return Ok(new FacebookSignupResponse(null, true, token.Result));
         }
 
+        //test
         [HttpGet("discoverysettings")]
+        [Authorize]
         public async Task<ActionResult> DiscoverySettings()
         {
             long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
-            var result = await _context.DiscoverySettings.Where(setting => setting.UserID == myId).FirstOrDefaultAsync();
+            var result = await _userService.GetDiscoverySettingsByUserID(myId);
             if (result == default)
             {
                 return Ok();
             }
 
-            return Ok(result);
+            return Ok(new DiscoverySettingsDTO(result));
         }
 
+        //test
         [Authorize]
         [HttpPost("savesettings")]
-        public async Task<ActionResult> SaveSettings(DiscoverySettings settings)
+        public async Task<ActionResult> SaveSettings(DiscoverySettingsDTO settings)
         {
             long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
-            //var result = _context.DiscoverySettings.(setting => setting.UserID == myId).FirstOrDefault();
-            if (myId != settings.UserID)
+
+            if (!ModelState.IsValid)
             {
                 return BadRequest();
             }
-            _context.Entry(settings).State = EntityState.Modified;
+
+            var discoverySetting = await _userService.GetDiscoverySettingsByUserID(myId);
+            if(discoverySetting == null)
+            {
+                return BadRequest();
+            }
+
+            discoverySetting.Update(settings);
+
+            _context.Entry(discoverySetting).State = EntityState.Modified;
 
             try
             {
@@ -380,7 +369,7 @@ namespace TinderClone.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!SettingsExists(settings.Id))
+                if (!SettingsExists(discoverySetting.Id))
                 {
                     return NotFound();
                 }
@@ -393,6 +382,7 @@ namespace TinderClone.Controllers
             return Ok();
         }
 
+        // deprecated
         [HttpPost("/local/uploadphoto")]
         [Authorize]
         public async Task<IActionResult> UploadPhoto(IFormFile photo, [FromForm] int index)
@@ -503,6 +493,7 @@ namespace TinderClone.Controllers
             }
         }
 
+        // test
         [HttpPost("uploadphoto")]
         [Authorize]
         public async Task<IActionResult> UploadPhotoIMGBB(IFormFile photo, [FromForm] int index)
@@ -554,12 +545,14 @@ namespace TinderClone.Controllers
             return Created(imgBBResponse.Data.DisplayUrl, new { index = index });
         }
 
+        //test
         [HttpPatch("setgender")]
         [Authorize]
         public async Task<IActionResult> SetGender([FromBody] Models.Profile param)
         {
             long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
-            var profile = await _context.Profiles.SingleOrDefaultAsync(x => x.UserID == myId);
+            var profile = await _userService.GetProfile(myId);
+
             if (profile != default)
             {
                 if (!string.IsNullOrWhiteSpace(Models.User.GetGender(param.Gender)))
@@ -573,7 +566,7 @@ namespace TinderClone.Controllers
                     }
                     catch (Exception ex)
                     {
-                        Console.Write("Exception save changes: ", ex);
+                        Console.Write("Exception save changes: "+ ex);
                         return StatusCode(StatusCodes.Status500InternalServerError);
                     }
                 }
@@ -582,6 +575,7 @@ namespace TinderClone.Controllers
             return BadRequest("The user id or gender is invalid");
         }
 
+        //test
         [HttpPost("check/email")]
         public async Task<IActionResult> CheckEmail(Models.Profile param)
         {

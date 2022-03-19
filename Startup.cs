@@ -1,15 +1,10 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using TinderClone.Models;
@@ -21,6 +16,7 @@ using Microsoft.AspNetCore.SignalR;
 using TinderClone.Singleton;
 using System.IdentityModel.Tokens.Jwt;
 using TinderClone.Services;
+using TinderClone.Infrastructure;
 
 namespace TinderClone
 {
@@ -37,7 +33,7 @@ namespace TinderClone
         public void ConfigureServices(IServiceCollection services)
         {
             var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")??"Development";
-            Console.WriteLine("-->Running on: " + env.ToString());
+            Console.WriteLine("--> Running on: " + env.ToString());
 
             if (env.Equals("Development"))
             {
@@ -79,6 +75,7 @@ namespace TinderClone
                 options.SaveToken = true;
                 options.TokenValidationParameters = new TokenValidationParameters()
                 {
+                    ValidateLifetime = true,
                     ValidateIssuer = true,
                     ValidateAudience = true,
                     ValidIssuer = Configuration["Jwt:Issuer"],
@@ -108,6 +105,7 @@ namespace TinderClone
             services.AddTransient<IUserService, UserService>();
             services.AddTransient<IFacebookService, FacebookService>();
             services.AddTransient<ILocationService, LocationService>();
+            services.AddTransient<IUsersRepository, UsersRepository>();
 
             services.AddCors(options =>
             {

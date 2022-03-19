@@ -8,27 +8,32 @@ namespace TinderClone.Services
 {
     public interface IFacebookService
     {
-        Task<bool> IsAccessTokenValid(string facebookAccessToken);
-        Task<string> GetMe(string facebookAccessToken);
+        public Task<bool> IsAccessTokenValid(string facebookAccessToken);
+        public Task<FacebookUserData> GetMe(string facebookAccessToken);
     }
     public class FacebookService : IFacebookService
     {
-        private TinderContext _dbContext;
-        private IConfiguration _config;
-        private HttpClient _httpClient;
-        public FacebookService(TinderContext dbContext, IConfiguration config)
+        private readonly TinderContext _dbContext;
+        private readonly HttpClient _httpClient;
+        public FacebookService(TinderContext dbContext)
         {
             _dbContext = dbContext;
-            _config = config;
             _httpClient = new HttpClient();
         }
 
-        public async Task<string> GetMe(string facebookAccessToken)
+        public FacebookService(HttpClient httpClient)
+        {
+            _httpClient = httpClient;
+        }
+
+        public async Task<FacebookUserData> GetMe(string facebookAccessToken)
         {
             var result =  await _httpClient.GetStringAsync($"https://graph.facebook.com/v13.0/me?fields=" +
                        $"id,email,first_name,last_name,name,gender,locale,birthday,picture" +
                    $"&access_token={facebookAccessToken}");
-            return result.ToString();
+            var data = JsonConvert.DeserializeObject<FacebookUserData>(result.ToString(),
+                new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+            return data;
         }
 
         public async Task<bool> IsAccessTokenValid(string facebookAccessToken)

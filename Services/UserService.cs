@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -12,6 +11,7 @@ using System.Net.Http;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using TinderClone.Infrastructure;
 using TinderClone.Models;
 
 namespace TinderClone.Services
@@ -24,24 +24,27 @@ namespace TinderClone.Services
         User Create(User user, string password);
         void Update(User user, string password = null);
         void Delete(int id);
-        Task<Result> CreateFromFB(FacebookUserData facebookUserData, GeoPluginResponse location);
-        Profile CreateFromFB(SignupDTO signupDTO, long userID);
+        Task<Result> CreateUserFromFB(FacebookUserData facebookUserData, GeoPluginResponse location);
         Task<string> GetToken(long userID);
+        Task<DiscoverySettings> GetDiscoverySettingsByUserID(long userID);
         Task<GeoPluginResponse> GetLocation(string ip);
-
+        Task<Profile> GetProfile(long userID);
+        Task<bool> IsUserExist(long userID);
         public Task<ImgBBResponse> UploadIMGBB(IFormFile photo);
     }
     public class UserService : IUserService
     {
-        private TinderContext _dbContext;
-        private IConfiguration _config;
-        private HttpClient _httpClient;
+        private readonly TinderContext _dbContext;
+        private readonly IConfiguration _config;
+        private readonly HttpClient _httpClient;
+        private readonly IUsersRepository _usersRepository;
 
-        public UserService(TinderContext dbContext, IConfiguration config)
+        public UserService(TinderContext dbContext, IConfiguration config, IUsersRepository usersRepository)
         {
             _dbContext = dbContext;
             _config = config;
             _httpClient = new HttpClient();
+            _usersRepository = usersRepository;
         }
 
         public async Task<GeoPluginResponse> GetLocation(string ip)
@@ -135,7 +138,7 @@ namespace TinderClone.Services
             return user;
         }
 
-        public async Task<Result> CreateFromFB(FacebookUserData facebookUserData, GeoPluginResponse location)
+        public async Task<Result> CreateUserFromFB(FacebookUserData facebookUserData, GeoPluginResponse location)
         {
             //create user
             var user = new User
@@ -229,24 +232,9 @@ namespace TinderClone.Services
             return new Result { IsSuccess = true, Error = null };
         }
 
-        public Profile CreateFromFB(SignupDTO signupDTO, long userID)
-        {
-            var profile = new Profile(signupDTO, userID);
-
-            if (_dbContext.Profiles.Any(x => x.UserID == userID))
-            {
-                throw new ApplicationException("User is exist");
-            }
-
-            _dbContext.Profiles.Add(profile);
-            _dbContext.SaveChanges();
-
-            return profile;
-        }
-
         async public Task<string> GetToken(long userID)
         {
-            if (await _dbContext.Users.AnyAsync(x => x.Id == userID))
+            if (await _usersRepository.IsUserExist(userID))
             {
                 var userClaims = new[]
                 {
@@ -260,7 +248,7 @@ namespace TinderClone.Services
                 var jwtToken = new JwtSecurityToken(_config["Jwt:Issuer"],
                                                     _config["Jwt:Audience"],
                                                     userClaims,
-                                                    expires: DateTime.UtcNow.AddDays(1),
+                                                    expires: DateTime.UtcNow.AddMinutes(15),
                                                     signingCredentials: signinCredential);
                 var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
                 return token;
@@ -308,6 +296,22 @@ namespace TinderClone.Services
             {
                 return (int)Sex.Other;
             }
+        }
+
+        public async Task<bool> IsUserExist(long userID)
+        {
+            return await _usersRepository.IsUserExist(userID);
+        }
+
+        public async Task<DiscoverySettings> GetDiscoverySettingsByUserID(long userID)
+        {
+            var res = await _dbContext.DiscoverySettings.Where(setting => setting.UserID == userID).FirstOrDefaultAsync();
+            return res;
+        }
+
+        public async Task<Profile> GetProfile(long userID)
+        {
+            return await _usersRepository.GetProfile(userID);
         }
     }
 }

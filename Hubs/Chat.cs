@@ -7,7 +7,14 @@ using TinderClone.Models;
 
 namespace TinderClone.Hubs
 {
-    public class Chat : Hub
+    public interface IChatHub
+    {
+        public Task Inbox(Messages message);
+
+        public Task NewMatch(object result);
+    }
+
+    public class Chat : Hub<IChatHub>
     {
         private readonly TinderContext _context;
         public Chat(TinderContext context)
@@ -17,7 +24,8 @@ namespace TinderClone.Hubs
 
         public override Task OnConnectedAsync()
         {
-            Console.WriteLine("on connected");
+            long senderID = Int64.Parse(Context.User.Claims.Where(x => x.Type.Equals("id")).Select(x => x.Value).FirstOrDefault().ToString());
+            Console.WriteLine($"{senderID} connected to Chat Hub...");
             return base.OnConnectedAsync();
         }
 
@@ -34,10 +42,9 @@ namespace TinderClone.Hubs
             await _context.SaveChangesAsync();
             var message = _context.Messages.SingleOrDefault(m => m.Id == messages.Id);
             var users = new string[] { senderID.ToString(), targetID };
-            Clients.Users(senderID.ToString()).SendAsync("Inbox", message);
-            Clients.Users(targetID).SendAsync("Inbox", message);
+
+            await Clients.Users(senderID.ToString(), targetID.ToString()).Inbox(message);
         }
-        
 
         public class Message
         {

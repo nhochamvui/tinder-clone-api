@@ -12,6 +12,10 @@ namespace TinderClone.Models
         {
         }
 
+        public TinderContext()
+        {
+        }
+
         public DbSet<User> Users { get; set; }
 
         public DbSet<ProfileImages> ProfileImages { get; set; }
