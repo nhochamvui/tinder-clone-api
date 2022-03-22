@@ -155,6 +155,7 @@ namespace TinderClone.Services
             var profile = new Profile(facebookUserData)
             {
                 Location = (string.IsNullOrEmpty(location.City) ? location.City + ", " : string.Empty) + location.Country,
+                Hometown = location.Country,
                 Longitude = location.Longtitude,
                 Latitude = location.Latitude
             };

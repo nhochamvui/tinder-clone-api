@@ -110,7 +110,6 @@ namespace TinderClone
                 {
                     var origins = Configuration["CorsOrigins"].ToString()
                     .Split(";", StringSplitOptions.TrimEntries);
-
                     builder.WithOrigins(origins)
                     .AllowCredentials()
                     .AllowAnyHeader().AllowAnyMethod()

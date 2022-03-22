@@ -74,6 +74,7 @@ namespace TinderClone.Models
                 LikeCount = 100,
                 SuperlikeCount = 4,
             });
+
             modelBuilder.Entity<Profile>().HasData(new Profile
             {
                 Id = 1,
@@ -82,6 +83,7 @@ namespace TinderClone.Models
                 Email = "a@gmail.com",
                 Gender = Profile.ParseGender("Male"),
                 Location = "Hồ Chí Minh",
+                Hometown = "Cần Thơ",
                 Name = "Tho",
                 Phone = "0907904598",
                 UserID = 1,
@@ -96,6 +98,7 @@ namespace TinderClone.Models
                 Email = "a1@gmail.com",
                 Gender = Profile.ParseGender("Female"),
                 Location = "Hồ Chí Minh",
+                Hometown = "Cần Thơ",
                 Name = "Jan",
                 Phone = "0907904598",
                 UserID = 2,
