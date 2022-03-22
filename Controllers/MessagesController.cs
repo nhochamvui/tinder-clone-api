@@ -1,13 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using TinderClone.Models;
 
@@ -33,7 +29,8 @@ namespace TinderClone.Controllers
             var messages = _context.Messages
                             .Where(x => x.fromID == myId || x.toID == myId)
                             .OrderByDescending(x => x.timeStamp)
-                            .Select(mess => new {
+                            .Select(mess => new
+                            {
                                 mess.Id,
                                 mess.fromID,
                                 mess.toID,
@@ -71,7 +68,8 @@ namespace TinderClone.Controllers
                             .Where(x => (x.fromID == myId && x.toID == pagingRequest.RecieverID)
                             || (x.fromID == pagingRequest.RecieverID && x.toID == myId))
                             .OrderByDescending(x => x.timeStamp)
-                            .Select(mess => new {
+                            .Select(mess => new
+                            {
                                 mess.Id,
                                 mess.fromID,
                                 mess.toID,
@@ -106,7 +104,7 @@ namespace TinderClone.Controllers
                 var temp = _context.Messages
                     .Where(m => (m.fromID == id && m.toID == myId) || (m.fromID == myId && m.toID == id) && !m.isRead)
                     .OrderByDescending(m => m.timeStamp).FirstOrDefault();
-                if(temp != default)
+                if (temp != default)
                 {
                     results.Add(temp);
                 }

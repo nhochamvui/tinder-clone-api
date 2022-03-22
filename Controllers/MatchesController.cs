@@ -41,7 +41,7 @@ namespace TinderClone.Controllers
 
             int likeCount = _context.DiscoverySettings.Where(x => x.UserID == myId).Select(x => x.LikeCount).FirstOrDefault();
 
-            if(likeCount == 0)
+            if (likeCount == 0)
             {
                 return Ok(113);
             }
@@ -94,10 +94,10 @@ namespace TinderClone.Controllers
             if (match.Any())
             {
                 var result = await match.Join(_context.Users, m => m.ObjectId, u => u.Id, (m, u) => new
-                    {
-                        DateOfMatch = m.DateOfMatch,
-                        UserID = u.Id
-                    })
+                {
+                    DateOfMatch = m.DateOfMatch,
+                    UserID = u.Id
+                })
                     .Join(_context.Profiles, x => x.UserID, p => p.UserID, (x, p) => new
                     {
                         Id = x.UserID,
@@ -111,7 +111,7 @@ namespace TinderClone.Controllers
                         ProfileImages = _context.ProfileImages.Where(x => x.ProfileID == p.Id).Select(x => x.ImageURL).ToList()
                     }).FirstOrDefaultAsync();
 
-                if(result != default)
+                if (result != default)
                 {
                     SendNewMatch(obj.Id, myId);
                     return Ok(new { isMatched = true, match = result });
@@ -160,8 +160,9 @@ namespace TinderClone.Controllers
                 var result = await matches.Join(_context.Users, m => m.ObjectId, u => u.Id, (m, u) => new
                 {
                     DateOfMatch = m.DateOfMatch,
-                    UserID = u.Id})
-                    .Join(_context.Profiles, x =>x.UserID, p => p.UserID, (x, p) => new
+                    UserID = u.Id
+                })
+                    .Join(_context.Profiles, x => x.UserID, p => p.UserID, (x, p) => new
                     {
                         Id = x.UserID,
                         x.DateOfMatch,
@@ -171,7 +172,7 @@ namespace TinderClone.Controllers
                         p.Gender,
                         p.About,
                         p.Location,
-                        ProfileImages = profileImages.Where(x=>x.ProfileID == p.Id).OrderByDescending(x => x.Id).Reverse().Select(x => x.ImageURL).ToArray()
+                        ProfileImages = profileImages.Where(x => x.ProfileID == p.Id).OrderByDescending(x => x.Id).Reverse().Select(x => x.ImageURL).ToArray()
                     })
                     .OrderByDescending(x => x.DateOfMatch)
                 .ToListAsync();
@@ -193,13 +194,13 @@ namespace TinderClone.Controllers
                 return BadRequest("Filter is required");
             }
 
-            if(!await _context.Users.AnyAsync(x=>x.Id == myId))
+            if (!await _context.Users.AnyAsync(x => x.Id == myId))
             {
                 return Unauthorized("User does not exist");
             }
 
             Profile profile = await _context.Profiles.SingleOrDefaultAsync(x => x.UserID == myId);
-            if(profile == default)
+            if (profile == default)
             {
                 return Unauthorized("User does not exist");
             }
@@ -224,37 +225,34 @@ namespace TinderClone.Controllers
             var myMatches = _context.Matches.Where(x => x.MyId == myId).ToList();
 
             var predicate = _context.Profiles.Where(x => x.UserID != myId).ToList()
-                .GroupJoin(myMatches, x => x.UserID, y => y.ObjectId, (x, y) => new { x, y })
-                .SelectMany(x => x.y.DefaultIfEmpty(), (x, y) => new { x.x, x.y })
-                .Where(x => x.y.Count() == 0).Select(x => x.x);
+                .GroupJoin(myMatches, p => p.UserID, m => m.ObjectId, (p, m) => new { p, m })
+                .Where(pm => !pm.m.Any()).Select(pm => pm.p);
 
             //distance
-            if(userFilter.Distance != 0)
+            if (userFilter.Distance != 0)
             {
-                predicate = predicate.Where(x =>
-                    _locationService.GetDistance(new Coordinate { Latitude = x.Latitude, Longitude = x.Longitude },
-                    new Coordinate { Latitude = myLocation.Latitude, Longitude = myLocation.Longtitude }) <= userFilter.Distance
-                );
+                predicate = predicate.Where(x => _locationService.GetDistance(new Coordinate { Latitude = x.Latitude, Longitude = x.Longitude },
+                    new Coordinate { Latitude = myLocation.Latitude, Longitude = myLocation.Longtitude }) <= userFilter.Distance);
             }
-            
 
             if (!string.IsNullOrWhiteSpace(userFilter.Gender.ToString())
-                && userFilter.Gender < Models.User.GetNumberOfGender())
+                && userFilter.Gender < Profile.GetNumberOfGender())
             {
                 predicate = predicate.Where(x => x.Gender == userFilter.Gender);
             }
 
             if (userFilter.minAge != 0 && userFilter.maxAge != 0)
             {
-                predicate = predicate.Where(x => Models.User.GetAge(x.DateOfBirth) >= userFilter.minAge &&
-                                            Models.User.GetAge(x.DateOfBirth) <= userFilter.maxAge);
+                predicate = predicate.Where(x => Profile.ParseAge(x.DateOfBirth) >= userFilter.minAge &&
+                                            Profile.ParseAge(x.DateOfBirth) <= userFilter.maxAge);
             }
 
-            var profileDTOs = predicate.Select(x => new {
+            var profileDTOs = predicate.Select(x => new
+            {
                 Name = x.Name,
                 Age = ((DateTime.UtcNow - x.DateOfBirth).Days / 365),
                 DateOfBirth = x.DateOfBirth.ToShortDateString(),
-                Gender = Models.User.GetGender(x.Gender),
+                Gender = Profile.ParseGender(x.Gender),
                 Hometown = x.Hometown,
                 About = x.About,
                 UserID = x.UserID,

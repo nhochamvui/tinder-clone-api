@@ -1,18 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Net;
 using System.Net.Http;
-using System.Reflection;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using TinderClone.Models;
 using TinderClone.Services;
@@ -47,7 +42,7 @@ namespace TinderClone.Controllers
                 if (isProfileExist)
                 {
                     var profile = await _context.Profiles.FirstOrDefaultAsync(x => x.UserID == myId);
-                    if(profile != default)
+                    if (profile != default)
                     {
                         var profileImages = Models.Profile.GetProfileImages(_context, profile.Id);
                         var profileDTO = new ProfileDTO(profile)
@@ -82,44 +77,6 @@ namespace TinderClone.Controllers
             var result = await _userService.GetLocation(ip);
             Console.WriteLine("/api/profile/location -> Location: " + result.ToString());
             return Ok(result);
-        }
-
-        [HttpPost("signup")]
-        [Authorize]
-        public async Task<IActionResult> Signup([FromBody] Models.SignupDTO param)
-        {
-            long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
-            var user = await _context.Users.SingleOrDefaultAsync(x => x.Id == myId);
-            bool isProfileExist = await _context.Profiles.AnyAsync(x => x.UserID == myId);
-            if (user != default && !isProfileExist)
-            {
-                foreach (PropertyInfo prop in param.GetType().GetProperties())
-                {
-                    if(prop.GetValue(param, null) == null)
-                    {
-                        return BadRequest("Required fields is missing");
-                    }
-                }
-
-                var newProfile = new Profile(
-                    param.Name, param.DateOfBirth, param.Gender, param.Email, myId);
-                var res = await _context.Profiles.AddAsync(newProfile);
-                try
-                {
-                    await _context.SaveChangesAsync();
-                    return Created("users/profile", newProfile);
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    Console.WriteLine("--------------start-----------------");
-                    Console.WriteLine("Exception when matching: ", ex);
-                    Console.WriteLine("my ID: ", myId);
-                    Console.WriteLine("---------------end----------------");
-                    return StatusCode(500, new { error = "Failed to update the database" });
-                }
-            }
-
-            return BadRequest("The user id is invalid or profile is exist");
         }
 
         [HttpPatch]
@@ -175,7 +132,7 @@ namespace TinderClone.Controllers
             long myId = Convert.ToInt64(HttpContext.User.FindFirst("id")?.Value);
             var profileID = await _context.Profiles.Where(x => x.UserID == myId).Select(x => x.Id).FirstOrDefaultAsync();
 
-            if(imageIndex == 0)
+            if (imageIndex == 0)
             {
                 return BadRequest();
             }

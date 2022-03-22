@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TinderClone.Models;
@@ -14,6 +14,7 @@ namespace TinderClone.Hubs
         public Task NewMatch(object result);
     }
 
+    [Authorize]
     public class Chat : Hub<IChatHub>
     {
         private readonly TinderContext _context;

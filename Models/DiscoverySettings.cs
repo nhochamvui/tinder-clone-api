@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace TinderClone.Models
 {
@@ -45,7 +41,7 @@ namespace TinderClone.Models
 
         public DiscoverySettings()
         {
-            
+
         }
 
         public void Update(DiscoverySettingsDTO discoverySettingsDTO)

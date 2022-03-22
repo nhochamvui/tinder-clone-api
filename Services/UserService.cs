@@ -49,7 +49,7 @@ namespace TinderClone.Services
 
         public async Task<GeoPluginResponse> GetLocation(string ip)
         {
-            var result = await _httpClient.GetStringAsync("http://www.geoplugin.net/json.gp?ip="+ip);
+            var result = await _httpClient.GetStringAsync("http://www.geoplugin.net/json.gp?ip=" + ip);
             var location = JsonConvert.DeserializeObject<GeoPluginResponse>(result.ToString(),
                 new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
             return location;
@@ -57,17 +57,17 @@ namespace TinderClone.Services
 
         public async Task<ImgBBResponse> UploadIMGBB(IFormFile photo)
         {
-            if(photo == null)
+            if (photo == null)
             {
                 return null;
             }
 
             var content = new MultipartFormDataContent();
-            content.Add(new StreamContent(photo.OpenReadStream()), "image", photo.FileName+DateTime.Now.Ticks.ToString());
+            content.Add(new StreamContent(photo.OpenReadStream()), "image", photo.FileName + DateTime.Now.Ticks.ToString());
             var key = "e304a1574ce97d35f1ca6b92b240291d";
             var response = await _httpClient.PostAsync($"https://api.imgbb.com/1/upload?key={key}", content);
 
-            if(response.StatusCode == System.Net.HttpStatusCode.OK)
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
             {
                 var result = await response.Content.ReadAsStringAsync();
                 return JsonConvert.DeserializeObject<ImgBBResponse>(result.ToString(),
@@ -152,12 +152,13 @@ namespace TinderClone.Services
             }
 
             // create profile
-            var profile = new Profile(new SignupDTO(facebookUserData), user.Id)
+            var profile = new Profile(facebookUserData)
             {
                 Location = (string.IsNullOrEmpty(location.City) ? location.City + ", " : string.Empty) + location.Country,
                 Longitude = location.Longtitude,
                 Latitude = location.Latitude
             };
+
             if (await _dbContext.Profiles.AnyAsync(x => x.UserID == user.Id))
             {
                 return new Result { IsSuccess = false, Error = "User is exist" };
@@ -188,7 +189,7 @@ namespace TinderClone.Services
             await _dbContext.SaveChangesAsync();
 
             // create profileimages
-            if(facebookUserData.photo != null)
+            if (facebookUserData.photo != null)
             {
                 ImgBBResponse imgBBResponse = await this.UploadIMGBB(facebookUserData.photo);
                 if (imgBBResponse == null || string.IsNullOrEmpty(imgBBResponse.Data.DisplayUrl))

@@ -1,22 +1,21 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using TinderClone.Models;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Threading.Tasks;
 using TinderClone.Hubs;
-using Microsoft.AspNetCore.SignalR;
-using TinderClone.Singleton;
-using System.IdentityModel.Tokens.Jwt;
-using TinderClone.Services;
 using TinderClone.Infrastructure;
+using TinderClone.Models;
+using TinderClone.Services;
+using TinderClone.Singleton;
 
 namespace TinderClone
 {
@@ -32,7 +31,7 @@ namespace TinderClone
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")??"Development";
+            var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
             Console.WriteLine("--> Running on: " + env.ToString());
 
             if (env.Equals("Development"))
@@ -58,18 +57,18 @@ namespace TinderClone
                 var pgPass = pgUserPass.Split(":")[1];
                 var connectionString = $"Server={pgHost};Port={pgPort};User Id={pgUser};Password={pgPass};Database={pgDb};SSL Mode=Require;Trust Server Certificate=true";
                 //var connectionString = $"Host={host};Database={database};Username={user};Password={password};SSL Mode=Require;Trust Server Certificate=true";
-                
+
                 // add DB context
                 services.AddDbContext<TinderContext>(opt => opt.UseNpgsql(connectionString));
             }
 
             services.AddControllers();
-            services.AddAuthentication(options => 
+            services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
-            .AddJwtBearer(options => 
+            .AddJwtBearer(options =>
             {
                 options.RequireHttpsMetadata = false;
                 options.SaveToken = true;
@@ -91,8 +90,6 @@ namespace TinderClone
                         if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/chat")))
                         {
                             context.Token = accessToken;
-                            var tokenHandler = new JwtSecurityTokenHandler();
-                            var userRaw = tokenHandler.ReadJwtToken(accessToken);
                         }
                         return Task.CompletedTask;
                     }
@@ -111,12 +108,10 @@ namespace TinderClone
             {
                 options.AddDefaultPolicy(builder =>
                 {
-                    builder
-                    .WithOrigins(new string[] {
-                        "https://tinderclonev2.netlify.app/",
-                        "https://tinderclonev2.netlify.app",
-                        "https://localhost:8080", 
-                        "http://localhost:8080" })
+                    var origins = Configuration["CorsOrigins"].ToString()
+                    .Split(";", StringSplitOptions.TrimEntries);
+
+                    builder.WithOrigins(origins)
                     .AllowCredentials()
                     .AllowAnyHeader().AllowAnyMethod()
                     .WithExposedHeaders("location");
@@ -133,25 +128,23 @@ namespace TinderClone
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, TinderContext tinderContext)
         {
-            Console.WriteLine("--> Running migration");
             Console.WriteLine("--> Connection String: " + tinderContext.Database.GetConnectionString());
             Console.WriteLine("--> Is database can connect: " + tinderContext.Database.CanConnect());
             try
             {
+                Console.WriteLine("--> Running migration");
                 tinderContext.Database.Migrate();
             }
             catch (Exception ex)
             {
-                Console.WriteLine("************Start**************");
+                Console.WriteLine("************Start Trace**************");
                 Console.WriteLine("Exception during migrate database: " + ex.Message);
-                Console.WriteLine("************End**************");
+                Console.WriteLine("************End Trace**************");
             }
-            
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                //app.UseSwagger();
-                //app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TinderClone v1"));
             }
 
             app.UseHttpsRedirection();
@@ -160,7 +153,6 @@ namespace TinderClone
 
             app.UseRouting();
 
-            //app.UseCors(options => options.WithOrigins("http://localhost:8080").AllowAnyHeader().AllowAnyMethod());
             app.UseCors();
 
             app.UseAuthentication();

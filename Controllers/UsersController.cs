@@ -1,19 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 using TinderClone.Infrastructure;
 using TinderClone.Models;
 using TinderClone.Models.Response;
@@ -31,6 +27,7 @@ namespace TinderClone.Controllers
         private readonly IFacebookService _facebookService;
         private readonly ILocationService _locationService;
         private readonly IUsersRepository _usersRepository;
+
         public UsersController(TinderContext context, ILocationService locationService, IUserService userService, IFacebookService facebookService, IConfiguration config)
         {
             _config = config;
@@ -38,168 +35,6 @@ namespace TinderClone.Controllers
             _userService = userService;
             _facebookService = facebookService;
             _locationService = locationService;
-        }
-
-        // GET: api/Users
-        [HttpGet("getusers")]
-        [Authorize]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
-        {
-            return await _context.Users.ToListAsync();
-        }
-
-        // GET: api/Users/5
-        [Authorize]
-        [HttpGet]
-        public async Task<ActionResult<UserDTO>> GetUser()
-        {
-            long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
-            var user = await _context.Users.FindAsync(myId);
-
-            if (user != null)
-            {
-                return Ok(new
-                {
-                    id = user.Id,
-                });
-            }
-
-            return NotFound();
-        }
-
-        // PUT: api/Users/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        [Authorize]
-        public async Task<IActionResult> PutUser(long id, User user)
-        {
-            if (id != user.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(user).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!UserExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/Users
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        [Authorize]
-        public async Task<ActionResult<User>> PostUser(User user)
-        {
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
-        }
-
-        // DELETE: api/Users/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(long id)
-        {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        [HttpPost("login")]
-        public async Task<ActionResult> Login(User userParam)
-        {
-            if (!string.IsNullOrWhiteSpace(userParam.UserName) && !string.IsNullOrWhiteSpace(userParam.Password))
-            {
-                var user = _context.Users.SingleOrDefault(x => x.UserName.Equals(userParam.UserName) && x.Password.Equals(userParam.Password));
-
-                if (user != null)
-                {
-                    var profileID = await _context.Profiles.Where(x => x.UserID == user.Id).Select(x => x.Id).FirstOrDefaultAsync();
-
-                    if (profileID == default)
-                    {
-                        return Unauthorized("User does not exist");
-                    }
-
-                    int profileImagesCount = _context.ProfileImages.Where(s => s.ProfileID == profileID).Count();
-
-                    var userClaims = new[]
-                    {
-                        new Claim(JwtRegisteredClaimNames.Sub, _config["Jwt:Subject"]),
-                        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                        new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString()),
-                        new Claim("id", user.Id.ToString()),
-                        new Claim("userName", user.UserName),
-                    };
-                    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
-                    var signinCredential = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-                    var jwtToken = new JwtSecurityToken(_config["Jwt:Issuer"],
-                                                        _config["Jwt:Audience"],
-                                                        userClaims,
-                                                        expires: DateTime.UtcNow.AddDays(1),
-                                                        signingCredentials: signinCredential);
-
-                    if (!_context.DiscoverySettings.Any(s => s.UserID == user.Id))
-                    {
-                        _context.DiscoverySettings.Add(new DiscoverySettings
-                        {
-                            AgePreferenceCheck = false,
-                            DistancePreference = 0,
-                            DistancePreferenceCheck = false,
-                            LikeCount = 30,
-                            Location = string.Empty,
-                            LookingForGender = TinderClone.Models.User.GetGender("Other"),
-                            MaxAge = 100,
-                            MinAge = 18,
-                            SuperlikeCount = 3,
-                            UserID = user.Id
-                        });
-                    }
-
-                    if (profileImagesCount < 6)
-                    {
-                        for (int i = profileImagesCount; i < 6; i++)
-                        {
-                            _context.ProfileImages.Add(new ProfileImages
-                            {
-                                ProfileID = profileID,
-                                ImageURL = "",
-                            });
-                            await _context.SaveChangesAsync();
-                        }
-                    }
-
-                    return Ok(new JwtSecurityTokenHandler().WriteToken(jwtToken));
-                }
-                else
-                {
-                    return BadRequest("Username is not exists");
-                }
-            }
-
-            return BadRequest("Username or Password is null");
         }
 
         [HttpDelete]
@@ -258,7 +93,7 @@ namespace TinderClone.Controllers
 
             var userInfoResponse = await _facebookService.GetMe(facebookAccessToken.AccessToken);
 
-            if(userInfoResponse == null)
+            if (userInfoResponse == null)
             {
                 return StatusCode(500, new FacebookSignupResponse("Facebook Internal's error", false, null));
             }
@@ -311,7 +146,7 @@ namespace TinderClone.Controllers
             GeoPluginResponse location = await _locationService.GetLocation(ip);
 
             Result result = await _userService.CreateUserFromFB(facebookUserData, location);
-            if (!result.IsSuccess) 
+            if (!result.IsSuccess)
             {
                 return StatusCode(500, new FacebookSignupResponse(result.Error, false, null));
             }
@@ -354,7 +189,7 @@ namespace TinderClone.Controllers
             }
 
             var discoverySetting = await _userService.GetDiscoverySettingsByUserID(myId);
-            if(discoverySetting == null)
+            if (discoverySetting == null)
             {
                 return BadRequest();
             }
@@ -555,18 +390,18 @@ namespace TinderClone.Controllers
 
             if (profile != default)
             {
-                if (!string.IsNullOrWhiteSpace(Models.User.GetGender(param.Gender)))
+                if (!string.IsNullOrWhiteSpace(Profile.ParseGender(param.Gender)))
                 {
                     profile.Gender = param.Gender;
                     _context.Profiles.Update(profile);
                     try
                     {
                         await _context.SaveChangesAsync();
-                        return Ok(new { gender = Models.User.GetGender(param.Gender) });
+                        return Ok(new { gender = Profile.ParseGender(param.Gender) });
                     }
                     catch (Exception ex)
                     {
-                        Console.Write("Exception save changes: "+ ex);
+                        Console.Write("Exception save changes: " + ex);
                         return StatusCode(StatusCodes.Status500InternalServerError);
                     }
                 }
@@ -588,10 +423,6 @@ namespace TinderClone.Controllers
             return BadRequest();
         }
 
-        private bool UserExists(long id)
-        {
-            return _context.Users.Any(e => e.Id == id);
-        }
         private bool SettingsExists(long id)
         {
             return _context.DiscoverySettings.Any(e => e.Id == id);

@@ -35,7 +35,7 @@ namespace TinderClone.Models
             Name = profile.Name;
             Age = ((DateTime.UtcNow - profile.DateOfBirth).Days / 365);
             DateOfBirth = profile.DateOfBirth.ToShortDateString();
-            Gender = Models.User.GetGender(profile.Gender);
+            Gender = Profile.ParseGender(profile.Gender);
             Hometown = profile.Hometown;
             About = profile.About;
             UserID = profile.UserID;

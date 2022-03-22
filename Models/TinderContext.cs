@@ -1,8 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace TinderClone.Models
 {
@@ -55,7 +52,7 @@ namespace TinderClone.Models
                 UserID = 1,
                 Location = "Hồ Chí Minh",
                 DistancePreference = 1,
-                LookingForGender = Models.User.GetGender("Female"),
+                LookingForGender = Profile.ParseGender("Female"),
                 MinAge = 18,
                 MaxAge = 100,
                 AgePreferenceCheck = true,
@@ -69,7 +66,7 @@ namespace TinderClone.Models
                 UserID = 2,
                 Location = "Hồ Chí Minh",
                 DistancePreference = 1,
-                LookingForGender = Models.User.GetGender("Male"),
+                LookingForGender = Profile.ParseGender("Male"),
                 MinAge = 18,
                 MaxAge = 100,
                 AgePreferenceCheck = true,
@@ -83,21 +80,21 @@ namespace TinderClone.Models
                 About = "",
                 DateOfBirth = new DateTime(1998, 1, 29),
                 Email = "a@gmail.com",
-                Gender = User.GetGender("Male"),
+                Gender = Profile.ParseGender("Male"),
                 Location = "Hồ Chí Minh",
                 Name = "Tho",
                 Phone = "0907904598",
                 UserID = 1,
                 Latitude = "10.0371100",
                 Longitude = "105.7882500",
-            }) ;
+            });
             modelBuilder.Entity<Profile>().HasData(new Profile
             {
                 Id = 2,
                 About = "",
                 DateOfBirth = new DateTime(1998, 1, 29),
                 Email = "a1@gmail.com",
-                Gender = User.GetGender("Female"),
+                Gender = Profile.ParseGender("Female"),
                 Location = "Hồ Chí Minh",
                 Name = "Jan",
                 Phone = "0907904598",

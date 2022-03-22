@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Net.Http;
 using System.Threading.Tasks;
 using TinderClone.Models;
@@ -28,7 +27,7 @@ namespace TinderClone.Services
 
         public async Task<FacebookUserData> GetMe(string facebookAccessToken)
         {
-            var result =  await _httpClient.GetStringAsync($"https://graph.facebook.com/v13.0/me?fields=" +
+            var result = await _httpClient.GetStringAsync($"https://graph.facebook.com/v13.0/me?fields=" +
                        $"id,email,first_name,last_name,name,gender,locale,birthday,picture" +
                    $"&access_token={facebookAccessToken}");
             var data = JsonConvert.DeserializeObject<FacebookUserData>(result.ToString(),
