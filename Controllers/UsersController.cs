@@ -120,9 +120,7 @@ namespace TinderClone.Controllers
                 return Unauthorized(new FacebookSignupResponse("Facebook token is invalid", false, null));
             }
 
-            var userInfoResponse = await _facebookService.GetMe(facebookUserData.AccessToken);
-            var userInfo = JsonConvert.DeserializeObject<FacebookUserData>(userInfoResponse.ToString(),
-                new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+            var userInfo = await _facebookService.GetMe(facebookUserData.AccessToken);
 
             bool isUserExist = await _userService.IsUserExist(userInfo.Id);
             if (isUserExist)

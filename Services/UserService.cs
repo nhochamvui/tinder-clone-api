@@ -195,7 +195,7 @@ namespace TinderClone.Services
                 ImgBBResponse imgBBResponse = await this.UploadIMGBB(facebookUserData.photo);
                 if (imgBBResponse == null || string.IsNullOrEmpty(imgBBResponse.Data.DisplayUrl))
                 {
-                    imgBBResponse.Data.DisplayUrl = "https://i.ibb.co/4drKLcS/make-friends.png";
+                    imgBBResponse.Data.DisplayUrl = "https://i.ibb.co/yQYP8Qx/Portrait-Placeholder.png";
                 }
 
                 await _dbContext.ProfileImages.AddAsync(new ProfileImages
@@ -209,7 +209,7 @@ namespace TinderClone.Services
             {
                 await _dbContext.ProfileImages.AddAsync(new ProfileImages
                 {
-                    ImageURL = "https://i.ibb.co/4drKLcS/make-friends.png",
+                    ImageURL = "https://i.ibb.co/yQYP8Qx/Portrait-Placeholder.png",
                     DeleteURL = string.Empty,
                     ProfileID = profile.Id
                 });
