@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -11,6 +13,8 @@ using Microsoft.OpenApi.Models;
 using System;
 using System.Text;
 using System.Threading.Tasks;
+using TinderClone.Authorization;
+using TinderClone.Authorization.Requirements;
 using TinderClone.Hubs;
 using TinderClone.Infrastructure;
 using TinderClone.Models;
@@ -95,7 +99,12 @@ namespace TinderClone
                     }
                 };
             });
-
+            services.AddAuthorization(
+                /** Sample policy
+                option => option.AddPolicy("IsGenZ",
+                policyBuilder => policyBuilder.AddRequirements(new GenZRequirement(1995, 2007)))
+                **/
+            );
             services.AddSignalR();
 
             services.AddSingleton<IUserIdProvider, UserIDProvider>();
@@ -103,6 +112,7 @@ namespace TinderClone
             services.AddTransient<IFacebookService, FacebookService>();
             services.AddTransient<ILocationService, LocationService>();
             services.AddTransient<IUsersRepository, UsersRepository>();
+            services.AddTransient<IAuthorizationHandler, AppAuthorizationHandler>();
 
             services.AddCors(options =>
             {
@@ -154,7 +164,7 @@ namespace TinderClone
 
             app.UseCors();
 
-            app.UseAuthentication();
+            //app.UseAuthentication();
 
             app.UseAuthorization();
 

@@ -1,21 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace TinderClone.Models
 {
     public class ProfileDTO
     {
+        [StringLength(25, MinimumLength = 1)]
         public string Name { get; set; }
 
+        [Range(18, 100)]
         public int Age { get; set; }
 
         public string DateOfBirth { get; set; }
 
         public string Gender { get; set; }
 
+        [StringLength(20, MinimumLength = 0)]
         public string Hometown { get; set; }
 
+        [StringLength(100, MinimumLength = 0)]
         public string About { get; set; }
 
         public long UserID { get; set; }

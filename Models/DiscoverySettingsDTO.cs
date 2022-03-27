@@ -10,6 +10,7 @@ namespace TinderClone.Models
         public string Location { get; set; }
 
         [Required]
+        [Range(2, 100)]
         public int DistancePreference { get; set; }
 
         [Required]
@@ -19,9 +20,11 @@ namespace TinderClone.Models
         public int LookingForGender { get; set; }
 
         [Required]
+        [Range(18, 41)]
         public int MinAge { get; set; }
 
         [Required]
+        [Range(42, 100)]
         public int MaxAge { get; set; }
 
         [Required]
