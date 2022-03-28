@@ -164,7 +164,7 @@ namespace TinderClone
 
             app.UseCors();
 
-            //app.UseAuthentication();
+            app.UseAuthentication();
 
             app.UseAuthorization();
 
