@@ -107,11 +107,11 @@ namespace TinderClone.Models
 
         public static int ParseGender(string sex)
         {
-            if (sex.Equals(Sex.Male.ToString().ToLower()))
+            if (sex.ToLower().Equals(Sex.Male.ToString().ToLower()))
             {
                 return (int)Sex.Male;
             }
-            else if (sex.Equals(Sex.Female.ToString().ToLower()))
+            else if (sex.ToLower().Equals(Sex.Female.ToString().ToLower()))
             {
                 return (int)Sex.Female;
             }
