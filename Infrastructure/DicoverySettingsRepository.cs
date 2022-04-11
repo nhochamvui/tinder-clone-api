@@ -5,28 +5,23 @@ using TinderClone.Models;
 
 namespace TinderClone.Infrastructure
 {
-    public class UsersRepository : IUsersRepository
+    public class DiscoverySettingsRepository : IDiscoverySettingsRepository
     {
         private readonly TinderContext _dbContext;
 
-        public UsersRepository(TinderContext dbContext)
+        public DiscoverySettingsRepository(TinderContext dbContext)
         {
             _dbContext = dbContext;
         }
 
         public async Task<bool> IsExist(long userID)
         {
-            return await _dbContext.Users.AnyAsync(x => x.Id == userID);
+            return await _dbContext.DiscoverySettings.AnyAsync(x => x.UserID == userID);
         }
 
-        public async Task<Profile> GetProfile(long userID)
+        public async Task<int> AddAsync(DiscoverySettings entity)
         {
-            return await _dbContext.Profiles.FirstOrDefaultAsync(x => x.UserID == userID);
-        }
-
-        public async Task<int> AddAsync(User user)
-        {
-            await _dbContext.Users.AddAsync(user);
+            await _dbContext.DiscoverySettings.AddAsync(entity);
             return await _dbContext.SaveChangesAsync();
         }
     }

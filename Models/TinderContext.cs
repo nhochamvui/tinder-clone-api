@@ -25,6 +25,10 @@ namespace TinderClone.Models
 
         public DbSet<Profile> Profiles { get; set; }
 
+        public DbSet<UserRoles> UserRoles { get; set; }
+
+        public DbSet<Role> Roles { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

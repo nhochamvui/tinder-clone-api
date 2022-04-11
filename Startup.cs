@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -11,10 +12,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TinderClone.Authorization;
-using TinderClone.Authorization.Requirements;
 using TinderClone.Hubs;
 using TinderClone.Infrastructure;
 using TinderClone.Models;
@@ -100,10 +101,10 @@ namespace TinderClone
                 };
             });
             services.AddAuthorization(
-                /** Sample policy
-                option => option.AddPolicy("IsGenZ",
-                policyBuilder => policyBuilder.AddRequirements(new GenZRequirement(1995, 2007)))
-                **/
+            /** Sample policy
+            option => option.AddPolicy("IsGenZ",
+            policyBuilder => policyBuilder.AddRequirements(new GenZRequirement(1995, 2007)))
+            **/
             );
             services.AddSignalR();
 
@@ -112,6 +113,9 @@ namespace TinderClone
             services.AddTransient<IFacebookService, FacebookService>();
             services.AddTransient<ILocationService, LocationService>();
             services.AddTransient<IUsersRepository, UsersRepository>();
+            services.AddTransient<IProfileRepository, ProfileRepository>();
+            services.AddTransient<IProfileImagesRepository, ProfileImagesRepository>();
+            services.AddTransient<IDiscoverySettingsRepository, DiscoverySettingsRepository>();
             services.AddTransient<IAuthorizationHandler, AppAuthorizationHandler>();
 
             services.AddCors(options =>
@@ -157,6 +161,17 @@ namespace TinderClone
             }
 
             app.UseHttpsRedirection();
+
+            app.Use(async (context, next) =>
+            {
+                var _dbContext = context.RequestServices.GetRequiredService(typeof(TinderContext)) as TinderContext;
+                var roles = _dbContext.Users.Where(x => x.Id == 1)
+                    .Join(_dbContext.UserRoles, x => x.Id, y => y.UserID, (x, y) => new { x, y })
+                    .Join(_dbContext.Roles, x => x.y.RoleID, r => r.Id, (x, r) => new { r.Name })
+                    .Select(x => x.Name);
+                await context.Response.WriteAsync("hehe");
+                await next();
+            });
 
             app.UseStaticFiles();
 

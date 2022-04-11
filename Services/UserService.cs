@@ -38,13 +38,21 @@ namespace TinderClone.Services
         private readonly IConfiguration _config;
         private readonly HttpClient _httpClient;
         private readonly IUsersRepository _usersRepository;
+        private readonly IProfileRepository _profileRepository;
+        private readonly IDiscoverySettingsRepository _discoverySettingsRepository;
+        private readonly IProfileImagesRepository _profileImagesRepository;
 
-        public UserService(TinderContext dbContext, IConfiguration config, IUsersRepository usersRepository)
+        public UserService(TinderContext dbContext, 
+            IConfiguration config, IUsersRepository usersRepository, IProfileRepository profileRepository,
+            IDiscoverySettingsRepository discoverySettingsRepositorys, IProfileImagesRepository profileImages)
         {
             _dbContext = dbContext;
             _config = config;
             _httpClient = new HttpClient();
             _usersRepository = usersRepository;
+            _profileRepository = profileRepository;
+            _discoverySettingsRepository = discoverySettingsRepositorys;
+            _profileImagesRepository = profileImages;
         }
 
         public async Task<GeoPluginResponse> GetLocation(string ip)
@@ -146,11 +154,10 @@ namespace TinderClone.Services
                 Id = facebookUserData.Id,
             };
 
-            if (await _dbContext.Users.AnyAsync(x => x.Id == facebookUserData.Id))
+            if (await _usersRepository.IsExist(facebookUserData.Id))
             {
                 return new Result { IsSuccess = false, Error = "User is exist" };
             }
-
             // create profile
             var profile = new Profile(facebookUserData)
             {
@@ -160,20 +167,18 @@ namespace TinderClone.Services
                 Latitude = location.Latitude
             };
 
-            if (await _dbContext.Profiles.AnyAsync(x => x.UserID == user.Id))
+            if (await _profileRepository.IsExist(user.Id))
             {
                 return new Result { IsSuccess = false, Error = "User is exist" };
             }
 
-            await _dbContext.Users.AddAsync(user);
-            await _dbContext.SaveChangesAsync();
-            await _dbContext.Profiles.AddAsync(profile);
-            await _dbContext.SaveChangesAsync();
+            await _usersRepository.AddAsync(user);
+            await _profileRepository.AddAsync(profile);
 
             // create discoverysetting
-            if (!await _dbContext.DiscoverySettings.AnyAsync(s => s.UserID == user.Id))
+            if (!await _discoverySettingsRepository.IsExist(user.Id))
             {
-                await _dbContext.DiscoverySettings.AddAsync(new DiscoverySettings
+                await _discoverySettingsRepository.AddAsync(new DiscoverySettings
                 {
                     AgePreferenceCheck = false,
                     DistancePreference = 2,
@@ -187,7 +192,6 @@ namespace TinderClone.Services
                     UserID = user.Id
                 });
             }
-            await _dbContext.SaveChangesAsync();
 
             // create profileimages
             if (facebookUserData.photo != null)
@@ -198,7 +202,7 @@ namespace TinderClone.Services
                     imgBBResponse.Data.DisplayUrl = "https://i.ibb.co/yQYP8Qx/Portrait-Placeholder.png";
                 }
 
-                await _dbContext.ProfileImages.AddAsync(new ProfileImages
+                await _profileImagesRepository.AddAsync(new ProfileImages
                 {
                     ImageURL = imgBBResponse.Data.DisplayUrl,
                     DeleteURL = imgBBResponse.Data.DeleteUrl,
@@ -207,7 +211,7 @@ namespace TinderClone.Services
             }
             else
             {
-                await _dbContext.ProfileImages.AddAsync(new ProfileImages
+                await _profileImagesRepository.AddAsync(new ProfileImages
                 {
                     ImageURL = "https://i.ibb.co/yQYP8Qx/Portrait-Placeholder.png",
                     DeleteURL = string.Empty,
@@ -215,20 +219,17 @@ namespace TinderClone.Services
                 });
             }
 
-            await _dbContext.SaveChangesAsync();
-
-            int profileImagesCount = _dbContext.ProfileImages.Where(s => s.ProfileID == profile.Id).Count();
+            int profileImagesCount = await _profileImagesRepository.CountMyImagesAsync(profile.Id);
             if (profileImagesCount < 6)
             {
                 for (int i = profileImagesCount; i < 6; i++)
                 {
-                    await _dbContext.ProfileImages.AddAsync(new ProfileImages
+                    await _profileImagesRepository.AddAsync(new ProfileImages
                     {
                         ProfileID = profile.Id,
                         ImageURL = "",
                     });
                 }
-                await _dbContext.SaveChangesAsync();
             }
 
             return new Result { IsSuccess = true, Error = null };
@@ -236,7 +237,7 @@ namespace TinderClone.Services
 
         async public Task<string> GetToken(long userID)
         {
-            if (await _usersRepository.IsUserExist(userID))
+            if (await _usersRepository.IsExist(userID))
             {
                 var userClaims = new[]
                 {
@@ -253,6 +254,7 @@ namespace TinderClone.Services
                                                     expires: DateTime.UtcNow.AddMinutes(15),
                                                     signingCredentials: signinCredential);
                 var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+                
                 return token;
             }
 
@@ -302,7 +304,7 @@ namespace TinderClone.Services
 
         public async Task<bool> IsUserExist(long userID)
         {
-            return await _usersRepository.IsUserExist(userID);
+            return await _usersRepository.IsExist(userID);
         }
 
         public async Task<DiscoverySettings> GetDiscoverySettingsByUserID(long userID)

@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace TinderClone.Models
@@ -15,5 +16,7 @@ namespace TinderClone.Models
 
         //navigation
         public Profile Profile { get; set; }
+
+        public List<Role> Roles { get; set; }
     }
 }
