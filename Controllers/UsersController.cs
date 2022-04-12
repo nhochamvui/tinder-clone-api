@@ -85,9 +85,12 @@ namespace TinderClone.Controllers
         [HttpPost("fbauth")]
         public async Task<ActionResult> Login(FacebookAccessToken facebookAccessToken)
         {
+            Console.WriteLine("Login: start Login...");
+
             // 3. we've got a valid token so we can request user data from fb
             if (!await _facebookService.IsAccessTokenValid(facebookAccessToken.AccessToken))
             {
+                Console.WriteLine("Login: Invalid facebook token");
                 return Unauthorized("Invalid facebook token");
             }
 
@@ -95,12 +98,15 @@ namespace TinderClone.Controllers
 
             if (userInfoResponse == null)
             {
+                Console.WriteLine("Login: Facebook Internal's error");
+
                 return StatusCode(500, new FacebookSignupResponse("Facebook Internal's error", false, null));
             }
 
             var isUserExist = await _userService.IsUserExist(userInfoResponse.Id);
             if (!isUserExist)
             {
+                Console.WriteLine("Login: user is not exist, return empty token");
                 return new OkObjectResult(string.Empty);
             }
 
@@ -114,9 +120,13 @@ namespace TinderClone.Controllers
         [HttpPost("fbsignup")]
         public async Task<ActionResult> FacebookSignup([FromForm] FacebookUserData facebookUserData)
         {
+            Console.WriteLine("fbsignup: start signup");
+
             // 1.generate an app access token
             if (!await _facebookService.IsAccessTokenValid(facebookUserData.AccessToken))
             {
+                Console.WriteLine("fbsignup: Facebook token is invalid");
+
                 return Unauthorized(new FacebookSignupResponse("Facebook token is invalid", false, null));
             }
 
@@ -144,8 +154,11 @@ namespace TinderClone.Controllers
             GeoPluginResponse location = await _locationService.GetLocation(ip);
 
             Result result = await _userService.CreateUserFromFB(facebookUserData, location);
+            Console.WriteLine("fbsignup: creating...");
+
             if (!result.IsSuccess)
             {
+                Console.WriteLine("fbsignup: " + result.Error);
                 return StatusCode(500, new FacebookSignupResponse(result.Error, false, null));
             }
 
@@ -153,6 +166,7 @@ namespace TinderClone.Controllers
             var token = _userService.GetToken(userInfo.Id);
             if (token.Equals(string.Empty))
             {
+                Console.WriteLine("fbsignup: User is not found");
                 return NotFound(new FacebookSignupResponse("User is not found", false, null));
             }
 
