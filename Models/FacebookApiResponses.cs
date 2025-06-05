@@ -1,23 +1,34 @@
 
+using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json;
 
 namespace TinderClone.Models
 {
     public class FacebookUserData
     {
+        [JsonProperty("id")]
         public long Id { get; set; }
+
         public string Email { get; set; }
+
         public string Name { get; set; }
+
         [JsonProperty("first_name")]
         public string FirstName { get; set; }
+
         [JsonProperty("last_name")]
         public string LastName { get; set; }
+
         public string Gender { get; set; }
+
         public string Locale { get; set; }
+
         public string Birthday { get; set; }
+
+        public IFormFile photo { get; set; }
+
         public FacebookPictureData Picture { get; set; }
 
-        [JsonProperty("access_token")]
         public string AccessToken { get; set; }
     }
 

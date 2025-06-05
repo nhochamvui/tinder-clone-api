@@ -1,13 +1,21 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TinderClone.Models;
 
 namespace TinderClone.Hubs
 {
-    public class Chat : Hub
+    public interface IChatHub
+    {
+        public Task Inbox(Messages message);
+
+        public Task NewMatch(object result);
+    }
+
+    [Authorize]
+    public class Chat : Hub<IChatHub>
     {
         private readonly TinderContext _context;
         public Chat(TinderContext context)
@@ -17,7 +25,8 @@ namespace TinderClone.Hubs
 
         public override Task OnConnectedAsync()
         {
-            Console.WriteLine("on connected");
+            long senderID = Int64.Parse(Context.User.Claims.Where(x => x.Type.Equals("id")).Select(x => x.Value).FirstOrDefault().ToString());
+            Console.WriteLine($"{senderID} connected to Chat Hub...");
             return base.OnConnectedAsync();
         }
 
@@ -28,16 +37,15 @@ namespace TinderClone.Hubs
 
         public async Task SendMessage(string targetID, string content)
         {
-            long senderID = Int32.Parse(Context.User.Claims.Where(x => x.Type.Equals("id")).Select(x => x.Value).FirstOrDefault().ToString());
-            Messages messages = new Messages(senderID, Int32.Parse(targetID), content, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), false, true);
+            long senderID = Int64.Parse(Context.User.Claims.Where(x => x.Type.Equals("id")).Select(x => x.Value).FirstOrDefault().ToString());
+            Messages messages = new Messages(senderID, Int64.Parse(targetID), content, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), false, true);
             await _context.Messages.AddAsync(messages);
             await _context.SaveChangesAsync();
             var message = _context.Messages.SingleOrDefault(m => m.Id == messages.Id);
             var users = new string[] { senderID.ToString(), targetID };
-            Clients.Users(senderID.ToString()).SendAsync("Inbox", message);
-            Clients.Users(targetID).SendAsync("Inbox", message);
+
+            await Clients.Users(senderID.ToString(), targetID.ToString()).Inbox(message);
         }
-        
 
         public class Message
         {

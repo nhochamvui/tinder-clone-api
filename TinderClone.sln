@@ -5,7 +5,9 @@ VisualStudioVersion = 16.0.31424.327
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TinderClone", "TinderClone.csproj", "{36251568-B6EC-499D-85D1-D588F2DB38B1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CertCreater", "..\CertCreater\CertCreater.csproj", "{AFC4040C-27F3-4C53-9A94-7749B98BFBDE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CertCreater", "..\CertCreater\CertCreater.csproj", "{AFC4040C-27F3-4C53-9A94-7749B98BFBDE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TinderClone_UnitTest", "..\TinderClone_UnitTest\TinderClone_UnitTest.csproj", "{42807277-2CCF-40B5-A87D-2932AD18B4F1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{AFC4040C-27F3-4C53-9A94-7749B98BFBDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AFC4040C-27F3-4C53-9A94-7749B98BFBDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AFC4040C-27F3-4C53-9A94-7749B98BFBDE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42807277-2CCF-40B5-A87D-2932AD18B4F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42807277-2CCF-40B5-A87D-2932AD18B4F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42807277-2CCF-40B5-A87D-2932AD18B4F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42807277-2CCF-40B5-A87D-2932AD18B4F1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

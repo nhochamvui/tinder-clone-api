@@ -1,6 +1,3 @@
- 
-using Newtonsoft.Json;
-
 namespace TinderClone.Models
 {
     public class Result

@@ -1,13 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Security.Claims;
 using System.Threading.Tasks;
 using TinderClone.Models;
 
@@ -18,35 +14,10 @@ namespace TinderClone.Controllers
     public class MessagesController : ControllerBase
     {
         private readonly TinderContext _context;
-        private IConfiguration _config;
 
-        public MessagesController(TinderContext context, IConfiguration config)
+        public MessagesController(TinderContext context)
         {
-            _config = config;
             _context = context;
-        }
-
-        [HttpPost("test")]
-        public async Task<ActionResult> Test()
-        {
-            Messages messages = new Messages(1, 2, "test", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), false, true);
-            DiscoverySettings discoverySettings = new DiscoverySettings
-            {
-                AgePreferenceCheck = false,
-                DistancePreference = 0,
-                DistancePreferenceCheck = false,
-                LikeCount = 30,
-                Location = "can tho",
-                LookingForGender = TinderClone.Models.User.GetGender("Other"),
-                MaxAge = 100,
-                MinAge = 18,
-                SuperlikeCount = 3,
-                UserID = 2152046361631112
-            };
-            await _context.DiscoverySettings.AddAsync(discoverySettings);
-            //await _context.Messages.AddAsync(messages);
-            await _context.SaveChangesAsync();
-            return Ok();
         }
 
         [Authorize]
@@ -58,7 +29,8 @@ namespace TinderClone.Controllers
             var messages = _context.Messages
                             .Where(x => x.fromID == myId || x.toID == myId)
                             .OrderByDescending(x => x.timeStamp)
-                            .Select(mess => new {
+                            .Select(mess => new
+                            {
                                 mess.Id,
                                 mess.fromID,
                                 mess.toID,
@@ -68,7 +40,7 @@ namespace TinderClone.Controllers
                                 timestamp = mess.timeStamp,
                             }).Reverse();
 
-            if (messages.Count() > 0)
+            if (messages.Any())
             {
                 return Ok(messages);
             }
@@ -76,33 +48,6 @@ namespace TinderClone.Controllers
             return Ok();
         }
 
-        //[Authorize]
-        //[HttpGet]
-        //public async Task<ActionResult> GetMessagesByID([FromQuery]string recieverID)
-        //{
-        //    long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
-
-        //    var messages = _context.Messages
-        //                    .Where(x => (x.fromID == myId && x.toID == Int32.Parse(recieverID)) 
-        //                    || (x.fromID == Int32.Parse(recieverID) && x.toID == myId))
-        //                    .OrderByDescending(x => x.timeStamp)
-        //                    .Select(mess => new {
-        //                        mess.Id,
-        //                        mess.fromID,
-        //                        mess.toID,
-        //                        mess.content,
-        //                        mess.isRead,
-        //                        mess.isSent,
-        //                        timeStamp = mess.timeStamp,
-        //                    }).Reverse();
-
-        //    if (messages.Count() > 0)
-        //    {
-        //        return Ok(messages);
-        //    }
-
-        //    return Ok();
-        //}
 
         public class MessagePagingRequest
         {
@@ -123,7 +68,8 @@ namespace TinderClone.Controllers
                             .Where(x => (x.fromID == myId && x.toID == pagingRequest.RecieverID)
                             || (x.fromID == pagingRequest.RecieverID && x.toID == myId))
                             .OrderByDescending(x => x.timeStamp)
-                            .Select(mess => new {
+                            .Select(mess => new
+                            {
                                 mess.Id,
                                 mess.fromID,
                                 mess.toID,
@@ -158,7 +104,7 @@ namespace TinderClone.Controllers
                 var temp = _context.Messages
                     .Where(m => (m.fromID == id && m.toID == myId) || (m.fromID == myId && m.toID == id) && !m.isRead)
                     .OrderByDescending(m => m.timeStamp).FirstOrDefault();
-                if(temp != default)
+                if (temp != default)
                 {
                     results.Add(temp);
                 }

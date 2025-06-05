@@ -1,29 +1,37 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
 namespace TinderClone.Models
 {
     public class ProfileDTO
     {
-        public string Name { get; set; }
+        [StringLength(25, MinimumLength = 1)]
+        public string? Name { get; set; }
 
-        public int Age { get; set; }
+        [Range(18, 100)]
+        public int? Age { get; set; }
 
         public string DateOfBirth { get; set; }
 
         public string Gender { get; set; }
 
-        public string Email { get; set; }
+        [StringLength(20, MinimumLength = 0)]
+        public string? Hometown { get; set; }
 
-        public string Location { get; set; }
+        [StringLength(100, MinimumLength = 0)]
+        public string? About { get; set; }
 
-        public string About { get; set; }
+        public long UserID { get; set; }
+
+        public ICollection<string> ProfileImages { get; set; }
 
         [JsonConstructor]
-        public ProfileDTO(string about, string location, string dateOfBirth)
+        public ProfileDTO(string about, string hometown, string dateOfBirth)
         {
             About = about;
-            Location = location;
+            Hometown = hometown;
             DateOfBirth = dateOfBirth;
         }
 
@@ -32,10 +40,10 @@ namespace TinderClone.Models
             Name = profile.Name;
             Age = ((DateTime.UtcNow - profile.DateOfBirth).Days / 365);
             DateOfBirth = profile.DateOfBirth.ToShortDateString();
-            Gender = Models.User.GetGender(profile.Gender);
-            Email =  profile.Email;
-            Location = profile.Location;
+            Gender = Profile.ParseGender(profile.Gender);
+            Hometown = profile.Hometown;
             About = profile.About;
+            UserID = profile.UserID;
         }
     }
 }

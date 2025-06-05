@@ -1,14 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace TinderClone.Models
 {
     public class TinderContext : DbContext
     {
         public TinderContext(DbContextOptions<TinderContext> options) : base(options)
+        {
+        }
+
+        public TinderContext()
         {
         }
 
@@ -38,45 +39,20 @@ namespace TinderClone.Models
                 Id = 1,
                 UserName = "unclebob",
                 Password = "1234",
-                Name = "Uncle Bob",
-                Email = "uncle.bob@gmail.com",
-                DateOfBirth = new DateTime(1998, 04, 25),
-                Location = "Hồ Chí Minh",
-                Gender = (int)Sex.Male
             }, new User
             {
                 Id = 2,
                 UserName = "auntbob",
                 Password = "1234",
-                Name = "Aunt Bob",
-                Email = "aunt.bob@gmail.com",
-                DateOfBirth = new DateTime(1999, 04, 25),
-                Gender = (int)Sex.Female,
-                Location = "Cần Thơ"
             });
-            modelBuilder.Entity<ProfileImages>().HasData(new ProfileImages
-            {
-                Id = 1,
-                ImageURL = "img/unclebob.jpg",
-                UserID = 1,
-            }, new ProfileImages
-            {
-                Id = 2,
-                ImageURL = "img/unclebob1.jpg",
-                UserID = 1,
-            }, new ProfileImages
-            {
-                Id = 3,
-                ImageURL = "img/auntbob.jpg",
-                UserID = 2,
-            });
+
             modelBuilder.Entity<DiscoverySettings>().HasData(new DiscoverySettings
             {
                 Id = 1,
                 UserID = 1,
                 Location = "Hồ Chí Minh",
                 DistancePreference = 1,
-                LookingForGender = Models.User.GetGender("Female"),
+                LookingForGender = Profile.ParseGender("Female"),
                 MinAge = 18,
                 MaxAge = 100,
                 AgePreferenceCheck = true,
@@ -90,7 +66,7 @@ namespace TinderClone.Models
                 UserID = 2,
                 Location = "Hồ Chí Minh",
                 DistancePreference = 1,
-                LookingForGender = Models.User.GetGender("Male"),
+                LookingForGender = Profile.ParseGender("Male"),
                 MinAge = 18,
                 MaxAge = 100,
                 AgePreferenceCheck = true,
@@ -98,29 +74,50 @@ namespace TinderClone.Models
                 LikeCount = 100,
                 SuperlikeCount = 4,
             });
+
             modelBuilder.Entity<Profile>().HasData(new Profile
             {
                 Id = 1,
                 About = "",
                 DateOfBirth = new DateTime(1998, 1, 29),
                 Email = "a@gmail.com",
-                Gender = User.GetGender("Male"),
+                Gender = Profile.ParseGender("Male"),
                 Location = "Hồ Chí Minh",
+                Hometown = "Cần Thơ",
                 Name = "Tho",
                 Phone = "0907904598",
                 UserID = 1,
-            }) ;
+                Latitude = "10.0371100",
+                Longitude = "105.7882500",
+            });
             modelBuilder.Entity<Profile>().HasData(new Profile
             {
                 Id = 2,
                 About = "",
                 DateOfBirth = new DateTime(1998, 1, 29),
                 Email = "a1@gmail.com",
-                Gender = User.GetGender("Female"),
+                Gender = Profile.ParseGender("Female"),
                 Location = "Hồ Chí Minh",
+                Hometown = "Cần Thơ",
                 Name = "Jan",
                 Phone = "0907904598",
                 UserID = 2,
+                //Latitude = "10.8142",
+                //Longitude = "106.6438",
+                Latitude = "10.045783",
+                Longitude = "105.761412",
+            });
+
+            modelBuilder.Entity<ProfileImages>().HasData(new ProfileImages
+            {
+                Id = 1,
+                ImageURL = "https://i.ibb.co/VYgMyVd/217772307-360659078758844-3269291223653109900-n.jpg",
+                ProfileID = 1,
+            }, new ProfileImages
+            {
+                Id = 2,
+                ImageURL = "https://i.ibb.co/6mYstg7/273538889-1378020902629820-5496867161341207743-n.jpg",
+                ProfileID = 2,
             });
         }
     }
