@@ -246,7 +246,9 @@ namespace TinderClone.Controllers
                 .Where(pm => !pm.m.Any()).Select(pm => pm.p);
 
             //distance
-            if (userFilter.Distance != 0)
+            if (userFilter.Distance != 0 &&
+                double.TryParse(myLocation.Latitude, out _) &&
+                double.TryParse(myLocation.Longtitude, out _))
             {
                 predicate = predicate.Where(x => _locationService.GetDistance(new Coordinate { Latitude = x.Latitude, Longitude = x.Longitude },
                     new Coordinate { Latitude = myLocation.Latitude, Longitude = myLocation.Longtitude }) <= userFilter.Distance);
