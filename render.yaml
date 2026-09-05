@@ -19,3 +19,5 @@ services:
         sync: false
       - key: Facebook__AppSecret
         sync: false
+      - key: ImgBB__Key
+        sync: false

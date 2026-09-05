@@ -86,9 +86,15 @@ namespace TinderClone.Services
                 return null;
             }
 
+            var key = _config["ImgBB:Key"];
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                Console.WriteLine("UploadIMGBB: ImgBB key is not configured");
+                return null;
+            }
+
             var content = new MultipartFormDataContent();
             content.Add(new StreamContent(photo.OpenReadStream()), "image", photo.FileName + DateTime.Now.Ticks.ToString());
-            var key = "e304a1574ce97d35f1ca6b92b240291d";
             var response = await _httpClient.PostAsync($"https://api.imgbb.com/1/upload?key={key}", content);
 
             if (response.StatusCode == System.Net.HttpStatusCode.OK)
@@ -98,14 +104,21 @@ namespace TinderClone.Services
                 new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
             }
 
+            Console.WriteLine("UploadIMGBB failed: " + response.StatusCode + " - " + await response.Content.ReadAsStringAsync());
             return null;
         }
 
         public async Task<ImgBBResponse> DeleteIMGBB(IFormFile photo)
         {
+            var key = _config["ImgBB:Key"];
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                Console.WriteLine("DeleteIMGBB: ImgBB key is not configured");
+                return null;
+            }
+
             var content = new MultipartFormDataContent();
             content.Add(new StreamContent(photo.OpenReadStream()), "image", photo.FileName + DateTime.Now.Ticks.ToString());
-            var key = "e304a1574ce97d35f1ca6b92b240291d";
             var response = await _httpClient.PostAsync($"https://api.imgbb.com/1/upload?key={key}", content);
 
             if (response.StatusCode == System.Net.HttpStatusCode.OK)
@@ -115,6 +128,7 @@ namespace TinderClone.Services
                 new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
             }
 
+            Console.WriteLine("DeleteIMGBB failed: " + response.StatusCode + " - " + await response.Content.ReadAsStringAsync());
             return null;
         }
 
