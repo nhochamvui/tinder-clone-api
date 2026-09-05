@@ -15,3 +15,7 @@ services:
         sync: false
       - key: Jwt__Key
         sync: false
+      - key: Facebook__AppId
+        sync: false
+      - key: Facebook__AppSecret
+        sync: false
