@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Net.Http;
@@ -25,6 +26,7 @@ namespace TinderClone.Services
         void Update(User user, string password = null);
         void Delete(int id);
         Task<Result> CreateUserFromFB(FacebookUserData facebookUserData, GeoPluginResponse location);
+        Task<Result> CreateLocalUser(SignupRequest request, GeoPluginResponse location);
         Task<string> GetToken(long userID);
         Task<DiscoverySettings> GetDiscoverySettingsByUserID(long userID);
         Task<GeoPluginResponse> GetLocation(string ip);
@@ -104,6 +106,11 @@ namespace TinderClone.Services
 
             if (user == null)
             {
+                user = _dbContext.Users.FirstOrDefault(x => x.Profile != null && x.Profile.Email != null && x.Profile.Email.Equals(username));
+            }
+
+            if (user == null)
+            {
                 return null;
             }
 
@@ -117,6 +124,16 @@ namespace TinderClone.Services
 
         private static bool VerifyPassword(string password, string userPassword)
         {
+            if (string.IsNullOrEmpty(userPassword))
+            {
+                return false;
+            }
+
+            if (userPassword.Contains(":"))
+            {
+                return PasswordHasher.Verify(password, userPassword);
+            }
+
             return password.Equals(userPassword);
         }
 
@@ -232,6 +249,141 @@ namespace TinderClone.Services
             }
 
             return new Result { IsSuccess = true, Error = null };
+        }
+
+        public async Task<Result> CreateLocalUser(SignupRequest request, GeoPluginResponse location)
+        {
+            if (string.IsNullOrWhiteSpace(request.Name))
+            {
+                return new Result { IsSuccess = false, Error = "Name is required" };
+            }
+            if (string.IsNullOrWhiteSpace(request.Password))
+            {
+                return new Result { IsSuccess = false, Error = "Password is required" };
+            }
+            if (string.IsNullOrWhiteSpace(request.Gender))
+            {
+                return new Result { IsSuccess = false, Error = "Gender is required" };
+            }
+            if (string.IsNullOrWhiteSpace(request.Birthday))
+            {
+                return new Result { IsSuccess = false, Error = "Birthday is required" };
+            }
+
+            string userName = string.IsNullOrWhiteSpace(request.Email)
+                ? await GenerateUniqueUserName(request.Name)
+                : request.Email.Trim();
+
+            if (await _dbContext.Users.AnyAsync(x => x.UserName.Equals(userName)))
+            {
+                return new Result { IsSuccess = false, Error = "User is exist" };
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Email) && await _dbContext.Profiles.AnyAsync(x => x.Email.Equals(request.Email.Trim())))
+            {
+                return new Result { IsSuccess = false, Error = "Email is exist" };
+            }
+
+            DateTime dateOfBirth;
+            try
+            {
+                dateOfBirth = DateTime.ParseExact(request.Birthday, "MM/dd/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None);
+            }
+            catch (Exception)
+            {
+                return new Result { IsSuccess = false, Error = "Birthday is invalid" };
+            }
+
+            if (location == null)
+            {
+                location = new GeoPluginResponse();
+            }
+
+            // create user
+            var user = new User
+            {
+                UserName = userName,
+                Password = PasswordHasher.Hash(request.Password),
+            };
+            await _dbContext.Users.AddAsync(user);
+            await _dbContext.SaveChangesAsync();
+
+            // create profile
+            var profile = new Profile
+            {
+                Name = request.Name,
+                DateOfBirth = dateOfBirth,
+                Gender = Profile.ParseGender(request.Gender),
+                Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email.Trim(),
+                UserID = user.Id,
+                Location = (string.IsNullOrEmpty(location.City) ? string.Empty : location.City + ", ") + location.Country,
+                Hometown = location.Country,
+                Longitude = location.Longtitude,
+                Latitude = location.Latitude,
+            };
+            await _dbContext.Profiles.AddAsync(profile);
+            await _dbContext.SaveChangesAsync();
+
+            // create discovery settings
+            await _dbContext.DiscoverySettings.AddAsync(new DiscoverySettings
+            {
+                AgePreferenceCheck = false,
+                DistancePreference = 2,
+                DistancePreferenceCheck = false,
+                LikeCount = 30,
+                Location = profile.Location,
+                LookingForGender = 3,
+                MaxAge = 100,
+                MinAge = 18,
+                SuperlikeCount = 3,
+                UserID = user.Id,
+            });
+            await _dbContext.SaveChangesAsync();
+
+            // create profile images (1 photo + 5 empty slots)
+            string firstImageUrl = "https://i.ibb.co/yQYP8Qx/Portrait-Placeholder.png";
+            string deleteUrl = string.Empty;
+            if (request.Photo != null)
+            {
+                ImgBBResponse imgBBResponse = await UploadIMGBB(request.Photo);
+                if (imgBBResponse != null && imgBBResponse.Data != null && !string.IsNullOrEmpty(imgBBResponse.Data.DisplayUrl))
+                {
+                    firstImageUrl = imgBBResponse.Data.DisplayUrl;
+                    deleteUrl = imgBBResponse.Data.DeleteUrl;
+                }
+            }
+
+            await _dbContext.ProfileImages.AddAsync(new ProfileImages
+            {
+                ImageURL = firstImageUrl,
+                DeleteURL = deleteUrl,
+                ProfileID = profile.Id,
+            });
+
+            for (int i = 1; i < 6; i++)
+            {
+                await _dbContext.ProfileImages.AddAsync(new ProfileImages
+                {
+                    ProfileID = profile.Id,
+                    ImageURL = string.Empty,
+                });
+            }
+            await _dbContext.SaveChangesAsync();
+
+            return new Result { IsSuccess = true, Error = null, UserId = user.Id };
+        }
+
+        private async Task<string> GenerateUniqueUserName(string name)
+        {
+            string baseName = string.IsNullOrWhiteSpace(name) ? "user" : name.Replace(" ", string.Empty).ToLower();
+            string candidate = baseName;
+            int suffix = 1;
+            while (await _dbContext.Users.AnyAsync(x => x.UserName.Equals(candidate)))
+            {
+                candidate = baseName + suffix;
+                suffix++;
+            }
+            return candidate;
         }
 
         async public Task<string> GetToken(long userID)

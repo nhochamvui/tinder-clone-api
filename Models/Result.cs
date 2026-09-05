@@ -4,5 +4,6 @@ namespace TinderClone.Models
     {
         public bool IsSuccess { get; set; }
         public string Error { get; set; }
+        public long UserId { get; set; }
     }
 }
