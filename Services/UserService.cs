@@ -46,15 +46,37 @@ namespace TinderClone.Services
             _dbContext = dbContext;
             _config = config;
             _httpClient = new HttpClient();
+            _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "tinder-clone-api/1.0");
             _usersRepository = usersRepository;
         }
 
         public async Task<GeoPluginResponse> GetLocation(string ip)
         {
-            var result = await _httpClient.GetStringAsync("http://www.geoplugin.net/json.gp?ip=" + ip);
-            var location = JsonConvert.DeserializeObject<GeoPluginResponse>(result.ToString(),
-                new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-            return location;
+            try
+            {
+                string ipAddress = ip?.Split(',')[0].Trim();
+                var result = await _httpClient.GetStringAsync($"http://ip-api.com/json/{ipAddress}?fields=status,message,country,regionName,city,lat,lon,query");
+                var location = JsonConvert.DeserializeObject<GeoPluginResponse>(result,
+                    new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
+
+                if (location == null)
+                {
+                    return new GeoPluginResponse();
+                }
+
+                if (location.Status != "success")
+                {
+                    Console.WriteLine($"GetLocation: ip-api returned '{location.Status}': {location.Message}");
+                    return new GeoPluginResponse();
+                }
+
+                return location;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetLocation: failed to resolve location: " + ex.Message);
+                return new GeoPluginResponse();
+            }
         }
 
         public async Task<ImgBBResponse> UploadIMGBB(IFormFile photo)
