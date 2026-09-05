@@ -34,12 +34,20 @@ namespace TinderClone.Services
 
         public double GetDistance(Coordinate point1, Coordinate point2)
         {
+            if (!double.TryParse(point1?.Latitude, out var lat1) ||
+                !double.TryParse(point1?.Longitude, out var lon1) ||
+                !double.TryParse(point2?.Latitude, out var lat2) ||
+                !double.TryParse(point2?.Longitude, out var lon2))
+            {
+                return double.MaxValue;
+            }
+
             const double EARTH_RADIUS = 6376500.0;
 
-            var d1 = double.Parse(point1.Latitude) * (Math.PI / 180.0);
-            var num1 = double.Parse(point1.Longitude) * (Math.PI / 180.0);
-            var d2 = double.Parse(point2.Latitude) * (Math.PI / 180.0);
-            var num2 = double.Parse(point2.Longitude) * (Math.PI / 180.0) - num1;
+            var d1 = lat1 * (Math.PI / 180.0);
+            var num1 = lon1 * (Math.PI / 180.0);
+            var d2 = lat2 * (Math.PI / 180.0);
+            var num2 = lon2 * (Math.PI / 180.0) - num1;
             var d3 = Math.Pow(Math.Sin((d2 - d1) / 2.0), 2.0) +
                      Math.Cos(d1) * Math.Cos(d2) * Math.Pow(Math.Sin(num2 / 2.0), 2.0);
 
