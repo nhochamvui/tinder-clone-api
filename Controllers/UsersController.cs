@@ -380,7 +380,7 @@ namespace TinderClone.Controllers
         // test
         [HttpPost("uploadphoto")]
         [Authorize]
-        public async Task<IActionResult> UploadPhotoIMGBB(IFormFile photo, [FromForm] int index)
+        public async Task<IActionResult> UploadProfilePhoto(IFormFile photo, [FromForm] int index)
         {
             long myId = Convert.ToInt64(HttpContext.User.FindFirst("Id")?.Value);
             var profileID = await _context.Profiles.Where(x => x.UserID == myId).Select(x => x.Id).FirstOrDefaultAsync();
@@ -390,10 +390,10 @@ namespace TinderClone.Controllers
                 return Unauthorized("User does not exist");
             }
 
-            ImgBBResponse imgBBResponse = await _userService.UploadIMGBB(photo);
-            if (imgBBResponse == null)
+            UploadedImage uploadedImage = await _userService.UploadImage(photo);
+            if (uploadedImage == null || string.IsNullOrEmpty(uploadedImage.Url))
             {
-                return StatusCode(500, new { message = "Upload Failed: " });
+                return StatusCode(500, new { message = "Upload Failed" });
             }
 
             var profileImages = await _context.ProfileImages
@@ -403,8 +403,8 @@ namespace TinderClone.Controllers
             if (index < profileImages.Count)
             {
                 var temp = profileImages[index];
-                temp.ImageURL = imgBBResponse.Data.DisplayUrl;
-                temp.DeleteURL = imgBBResponse.Data.DeleteUrl;
+                temp.ImageURL = uploadedImage.Url;
+                temp.DeleteURL = string.Empty;
                 _context.ProfileImages.Update(temp);
             }
             // max slot is 6
@@ -412,8 +412,8 @@ namespace TinderClone.Controllers
             {
                 _context.ProfileImages.Add(new ProfileImages
                 {
-                    ImageURL = imgBBResponse.Data.DisplayUrl,
-                    DeleteURL = imgBBResponse.Data.DeleteUrl,
+                    ImageURL = uploadedImage.Url,
+                    DeleteURL = string.Empty,
                     ProfileID = profileID,
                 });
             }
@@ -426,7 +426,7 @@ namespace TinderClone.Controllers
                 return StatusCode(500, "Internal Server Error. Something went Wrong! " + ex);
             }
 
-            return Created(imgBBResponse.Data.DisplayUrl, new { index = index });
+            return Created(uploadedImage.Url, new { index = index });
         }
 
         //test

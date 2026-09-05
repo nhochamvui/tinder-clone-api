@@ -1,3 +1,4 @@
+using CloudinaryDotNet;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -115,6 +116,11 @@ namespace TinderClone
                 **/
             );
             services.AddSignalR();
+
+            services.AddSingleton(sp => new Cloudinary(new CloudinaryDotNet.Account(
+                Configuration["Cloudinary:CloudName"],
+                Configuration["Cloudinary:ApiKey"],
+                Configuration["Cloudinary:ApiSecret"])));
 
             services.AddSingleton<IUserIdProvider, UserIDProvider>();
             services.AddTransient<IUserService, UserService>();

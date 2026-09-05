@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -32,7 +34,7 @@ namespace TinderClone.Services
         Task<GeoPluginResponse> GetLocation(string ip);
         Task<Profile> GetProfile(long userID);
         Task<bool> IsUserExist(long userID);
-        public Task<ImgBBResponse> UploadIMGBB(IFormFile photo);
+        Task<UploadedImage> UploadImage(IFormFile photo);
     }
     public class UserService : IUserService
     {
@@ -40,14 +42,16 @@ namespace TinderClone.Services
         private readonly IConfiguration _config;
         private readonly HttpClient _httpClient;
         private readonly IUsersRepository _usersRepository;
+        private readonly Cloudinary _cloudinary;
 
-        public UserService(TinderContext dbContext, IConfiguration config, IUsersRepository usersRepository)
+        public UserService(TinderContext dbContext, IConfiguration config, IUsersRepository usersRepository, Cloudinary cloudinary)
         {
             _dbContext = dbContext;
             _config = config;
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "tinder-clone-api/1.0");
             _usersRepository = usersRepository;
+            _cloudinary = cloudinary;
         }
 
         public async Task<GeoPluginResponse> GetLocation(string ip)
@@ -79,57 +83,48 @@ namespace TinderClone.Services
             }
         }
 
-        public async Task<ImgBBResponse> UploadIMGBB(IFormFile photo)
+        public async Task<UploadedImage> UploadImage(IFormFile photo)
         {
             if (photo == null)
             {
                 return null;
             }
 
-            var key = _config["ImgBB:Key"];
-            if (string.IsNullOrWhiteSpace(key))
+            string[] permittedExtensions = { ".jpg", ".jpeg", ".png" };
+            string extension = System.IO.Path.GetExtension(photo.FileName)?.ToLowerInvariant();
+            if (string.IsNullOrEmpty(extension) || !permittedExtensions.Contains(extension))
             {
-                Console.WriteLine("UploadIMGBB: ImgBB key is not configured");
+                Console.WriteLine("UploadImage: unsupported file type: " + extension);
                 return null;
             }
 
-            var content = new MultipartFormDataContent();
-            content.Add(new StreamContent(photo.OpenReadStream()), "image", photo.FileName + DateTime.Now.Ticks.ToString());
-            var response = await _httpClient.PostAsync($"https://api.imgbb.com/1/upload?key={key}", content);
-
-            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            const long maxFileSize = 5 * 1024 * 1024;
+            if (photo.Length > maxFileSize)
             {
-                var result = await response.Content.ReadAsStringAsync();
-                return JsonConvert.DeserializeObject<ImgBBResponse>(result.ToString(),
-                new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-            }
-
-            Console.WriteLine("UploadIMGBB failed: " + response.StatusCode + " - " + await response.Content.ReadAsStringAsync());
-            return null;
-        }
-
-        public async Task<ImgBBResponse> DeleteIMGBB(IFormFile photo)
-        {
-            var key = _config["ImgBB:Key"];
-            if (string.IsNullOrWhiteSpace(key))
-            {
-                Console.WriteLine("DeleteIMGBB: ImgBB key is not configured");
+                Console.WriteLine("UploadImage: file too large: " + photo.Length + " bytes");
                 return null;
             }
 
-            var content = new MultipartFormDataContent();
-            content.Add(new StreamContent(photo.OpenReadStream()), "image", photo.FileName + DateTime.Now.Ticks.ToString());
-            var response = await _httpClient.PostAsync($"https://api.imgbb.com/1/upload?key={key}", content);
-
-            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            using (var stream = photo.OpenReadStream())
             {
-                var result = await response.Content.ReadAsStringAsync();
-                return JsonConvert.DeserializeObject<ImgBBResponse>(result.ToString(),
-                new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore, MissingMemberHandling = MissingMemberHandling.Ignore });
-            }
+                var uploadParams = new ImageUploadParams
+                {
+                    File = new FileDescription(photo.FileName, stream),
+                };
+                var result = await _cloudinary.UploadAsync(uploadParams);
 
-            Console.WriteLine("DeleteIMGBB failed: " + response.StatusCode + " - " + await response.Content.ReadAsStringAsync());
-            return null;
+                if (result.Error != null)
+                {
+                    Console.WriteLine("UploadImage failed: " + result.Error.Message);
+                    return null;
+                }
+
+                return new UploadedImage
+                {
+                    Url = result.SecureUrl?.ToString() ?? result.Url?.ToString(),
+                    PublicId = result.PublicId,
+                };
+            }
         }
 
         public User Authenticate(string username, string password)
@@ -243,30 +238,22 @@ namespace TinderClone.Services
             await _dbContext.SaveChangesAsync();
 
             // create profileimages
+            string firstPhotoUrl = "https://i.ibb.co/yQYP8Qx/Portrait-Placeholder.png";
             if (facebookUserData.photo != null)
             {
-                ImgBBResponse imgBBResponse = await this.UploadIMGBB(facebookUserData.photo);
-                if (imgBBResponse == null || string.IsNullOrEmpty(imgBBResponse.Data.DisplayUrl))
+                UploadedImage uploadedImage = await UploadImage(facebookUserData.photo);
+                if (uploadedImage != null && !string.IsNullOrEmpty(uploadedImage.Url))
                 {
-                    imgBBResponse.Data.DisplayUrl = "https://i.ibb.co/yQYP8Qx/Portrait-Placeholder.png";
+                    firstPhotoUrl = uploadedImage.Url;
                 }
+            }
 
-                await _dbContext.ProfileImages.AddAsync(new ProfileImages
-                {
-                    ImageURL = imgBBResponse.Data.DisplayUrl,
-                    DeleteURL = imgBBResponse.Data.DeleteUrl,
-                    ProfileID = profile.Id
-                });
-            }
-            else
+            await _dbContext.ProfileImages.AddAsync(new ProfileImages
             {
-                await _dbContext.ProfileImages.AddAsync(new ProfileImages
-                {
-                    ImageURL = "https://i.ibb.co/yQYP8Qx/Portrait-Placeholder.png",
-                    DeleteURL = string.Empty,
-                    ProfileID = profile.Id
-                });
-            }
+                ImageURL = firstPhotoUrl,
+                DeleteURL = string.Empty,
+                ProfileID = profile.Id
+            });
 
             await _dbContext.SaveChangesAsync();
 
@@ -378,21 +365,19 @@ namespace TinderClone.Services
 
             // create profile images (1 photo + 5 empty slots)
             string firstImageUrl = "https://i.ibb.co/yQYP8Qx/Portrait-Placeholder.png";
-            string deleteUrl = string.Empty;
             if (request.Photo != null)
             {
-                ImgBBResponse imgBBResponse = await UploadIMGBB(request.Photo);
-                if (imgBBResponse != null && imgBBResponse.Data != null && !string.IsNullOrEmpty(imgBBResponse.Data.DisplayUrl))
+                UploadedImage uploadedImage = await UploadImage(request.Photo);
+                if (uploadedImage != null && !string.IsNullOrEmpty(uploadedImage.Url))
                 {
-                    firstImageUrl = imgBBResponse.Data.DisplayUrl;
-                    deleteUrl = imgBBResponse.Data.DeleteUrl;
+                    firstImageUrl = uploadedImage.Url;
                 }
             }
 
             await _dbContext.ProfileImages.AddAsync(new ProfileImages
             {
                 ImageURL = firstImageUrl,
-                DeleteURL = deleteUrl,
+                DeleteURL = string.Empty,
                 ProfileID = profile.Id,
             });
 
