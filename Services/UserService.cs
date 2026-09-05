@@ -133,11 +133,11 @@ namespace TinderClone.Services
             {
                 return null;
             }
-            var user = _dbContext.Users.SingleOrDefault(x => x.UserName.Equals(username));
+            var user = _dbContext.Users.SingleOrDefault(x => x.UserName.ToLower().Equals(username.ToLower()));
 
             if (user == null)
             {
-                user = _dbContext.Users.FirstOrDefault(x => x.Profile != null && x.Profile.Email != null && x.Profile.Email.Equals(username));
+                user = _dbContext.Users.FirstOrDefault(x => x.Profile != null && x.Profile.Email != null && x.Profile.Email.ToLower().Equals(username.ToLower()));
             }
 
             if (user == null)
@@ -280,6 +280,10 @@ namespace TinderClone.Services
             {
                 return new Result { IsSuccess = false, Error = "Name is required" };
             }
+            if (string.IsNullOrWhiteSpace(request.UserName))
+            {
+                return new Result { IsSuccess = false, Error = "Username is required" };
+            }
             if (string.IsNullOrWhiteSpace(request.Password))
             {
                 return new Result { IsSuccess = false, Error = "Password is required" };
@@ -293,13 +297,11 @@ namespace TinderClone.Services
                 return new Result { IsSuccess = false, Error = "Birthday is required" };
             }
 
-            string userName = string.IsNullOrWhiteSpace(request.Email)
-                ? await GenerateUniqueUserName(request.Name)
-                : request.Email.Trim();
+            string userName = request.UserName.Trim();
 
-            if (await _dbContext.Users.AnyAsync(x => x.UserName.Equals(userName)))
+            if (await _dbContext.Users.AnyAsync(x => x.UserName.ToLower().Equals(userName.ToLower())))
             {
-                return new Result { IsSuccess = false, Error = "User is exist" };
+                return new Result { IsSuccess = false, Error = "Username is already taken" };
             }
 
             if (!string.IsNullOrWhiteSpace(request.Email) && await _dbContext.Profiles.AnyAsync(x => x.Email.Equals(request.Email.Trim())))
@@ -392,19 +394,6 @@ namespace TinderClone.Services
             await _dbContext.SaveChangesAsync();
 
             return new Result { IsSuccess = true, Error = null, UserId = user.Id };
-        }
-
-        private async Task<string> GenerateUniqueUserName(string name)
-        {
-            string baseName = string.IsNullOrWhiteSpace(name) ? "user" : name.Replace(" ", string.Empty).ToLower();
-            string candidate = baseName;
-            int suffix = 1;
-            while (await _dbContext.Users.AnyAsync(x => x.UserName.Equals(candidate)))
-            {
-                candidate = baseName + suffix;
-                suffix++;
-            }
-            return candidate;
         }
 
         async public Task<string> GetToken(long userID)
