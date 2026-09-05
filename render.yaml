@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: tinderclone-api
+    runtime: docker
+    repo: https://github.com/nhochamvui/tinder-clone-api
+    branch: master
+    plan: free
+    healthCheckPath: /api/profile/location
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: DATABASE_URL
+        sync: false
+      - key: CorsOrigins
+        sync: false
+      - key: Jwt__Key
+        sync: false

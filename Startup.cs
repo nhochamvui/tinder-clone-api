@@ -44,9 +44,18 @@ namespace TinderClone
             }
             else
             {
-                string connectionUrl = Environment.GetEnvironmentVariable("DATABASE_URL").Replace("postgres://", string.Empty);
+                string rawUrl = Environment.GetEnvironmentVariable("DATABASE_URL")
+                    ?? throw new InvalidOperationException("DATABASE_URL is not set.");
+
+                // Normalize Heroku/Neon/Supabase-style URLs (postgres:// or postgresql://),
+                // stripping any query string (e.g. ?sslmode=require).
+                string connectionUrl = rawUrl
+                    .Split('?')[0]
+                    .Replace("postgres://", string.Empty)
+                    .Replace("postgresql://", string.Empty);
+
                 Console.WriteLine("************Start**************");
-                Console.WriteLine("DATABASE_URL: " + connectionUrl);
+                Console.WriteLine("DATABASE_URL host: " + connectionUrl.Split("@")[1].Split("/")[0]);
                 Console.WriteLine("************End**************");
 
                 var pgUserPass = connectionUrl.Split("@")[0];
