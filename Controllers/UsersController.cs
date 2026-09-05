@@ -80,6 +80,43 @@ namespace TinderClone.Controllers
             return Ok();
         }
 
+        [HttpPost("login")]
+        public async Task<ActionResult> Login([FromBody] LoginRequest request)
+        {
+            var user = _userService.Authenticate(request.UserName, request.Password);
+            if (user == null)
+            {
+                return Unauthorized(new { message = "Invalid username or password" });
+            }
+
+            var token = await _userService.GetToken(user.Id);
+            return Ok(new { accessToken = token });
+        }
+
+        [HttpPost("signup")]
+        public async Task<ActionResult> Signup([FromForm] SignupRequest request)
+        {
+            string ip = HttpContext.Request.Headers["x-forwarded-for"];
+            GeoPluginResponse location = null;
+            try
+            {
+                location = await _locationService.GetLocation(ip);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("signup: failed to resolve location: " + ex.Message);
+            }
+
+            Result result = await _userService.CreateLocalUser(request, location);
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new { message = result.Error });
+            }
+
+            var token = await _userService.GetToken(result.UserId);
+            return Ok(new { accessToken = token });
+        }
+
         //test
         //login with fb accesstoken
         [HttpPost("fbauth")]
