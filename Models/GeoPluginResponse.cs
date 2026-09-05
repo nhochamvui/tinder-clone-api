@@ -5,22 +5,28 @@ namespace TinderClone.Models
 {
     public class GeoPluginResponse
     {
-        [JsonProperty("geoplugin_request")]
+        [JsonProperty("status")]
+        public string Status { get; set; }
+
+        [JsonProperty("message")]
+        public string Message { get; set; }
+
+        [JsonProperty("query")]
         public string RequestIP { get; set; }
 
-        [JsonProperty("geoplugin_city")]
+        [JsonProperty("city")]
         public string City { get; set; }
 
-        [JsonProperty("geoplugin_regionName")]
+        [JsonProperty("regionName")]
         public string RegionName { get; set; }
 
-        [JsonProperty("geoplugin_countryName")]
+        [JsonProperty("country")]
         public string Country { get; set; }
 
-        [JsonProperty("geoplugin_latitude")]
+        [JsonProperty("lat")]
         public string Latitude { get; set; }
 
-        [JsonProperty("geoplugin_longitude")]
+        [JsonProperty("lon")]
         public string Longtitude { get; set; }
     }
 }

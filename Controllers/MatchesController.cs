@@ -209,12 +209,29 @@ namespace TinderClone.Controllers
             GeoPluginResponse myLocation = new GeoPluginResponse();
             if (!string.IsNullOrWhiteSpace(header))
             {
-                myLocation = await _userService.GetLocation(header);
-                profile.Location = myLocation.City + ", " + myLocation.Country;
-                profile.Longitude = myLocation.Longtitude;
-                profile.Latitude = myLocation.Latitude;
-                _context.Profiles.Update(profile);
-                await _context.SaveChangesAsync();
+                try
+                {
+                    myLocation = await _userService.GetLocation(header);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("discover: failed to resolve location: " + ex.Message);
+                    myLocation = new GeoPluginResponse();
+                }
+
+                if (!string.IsNullOrWhiteSpace(myLocation.City) && !string.IsNullOrWhiteSpace(myLocation.Country))
+                {
+                    profile.Location = myLocation.City + ", " + myLocation.Country;
+                    profile.Longitude = myLocation.Longtitude;
+                    profile.Latitude = myLocation.Latitude;
+                    _context.Profiles.Update(profile);
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    myLocation.Longtitude = profile.Longitude;
+                    myLocation.Latitude = profile.Latitude;
+                }
             }
             else
             {
